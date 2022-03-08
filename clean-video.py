@@ -10,6 +10,7 @@ import shutil
 
 #
 
+# ##### Create a log file
 # #### create better handling if there are multiple subtitle tracks
 # ### Create better handling if there are multiple video tracks
 # ## create better handling if there are multiple audio tracks
@@ -391,9 +392,11 @@ for aa8, bb8 in master["mkv"].items():
             + ".mkv"
         )
         aa8h = ip + aa8
+        print(bcolors.OKBLUE + "Recreating: " + bcolors.ENDC, aa8)
         sbp_run(aa8e)
         print(bcolors.OKBLUE + "deleting orig: " + bcolors.ENDC, aa8h)
         send2trash.send2trash(aa8h)
+        print()
 # end rebuilding MKVs
 
 # start keep name tidy
@@ -451,6 +454,7 @@ for rm1, rm2 in mp4has_title.items():
     sbp_run(rmcmd)
     print(bcolors.OKBLUE + "deleting orig: " + bcolors.ENDC, rmof)
     send2trash.send2trash(rmof)
+    print()
 
 fname_rename(glob.glob(ip + "**", recursive=True))
 
@@ -503,8 +507,8 @@ for path9 in Path(ip).rglob("*"):
 for path4 in Path(tmp11).rglob("*.srt"):
     p4dst = str(path4).split("/")
     p4dst = subpath + p4dst[len(p4dst) - 1]
-    # mvsubs = shutil.move(str(path4), p4dst)
-    # print(mvsubs)
+    mvsubs = shutil.move(str(path4), p4dst)
+    print(bcolors.OKGREEN + "Moving sub: " + bcolors.ENDC, mvsubs)
 
     # disabled at work
 
@@ -512,6 +516,11 @@ for path5 in Path(tmp11).rglob("*"):
     if ".srt" in str(path5):
         continue
     os.remove(path5)
+print(bcolors.OKBLUE + "Temp folder cleared" + bcolors.ENDC)
+
+for path6 in Path(ip).rglob("*.htm"):
+    os.remove(path6)
+print(bcolors.OKBLUE + "Junk files deleted" + bcolors.ENDC)
 
 # another safeguard check, probably need more as this probably doesn't work
 # if not bool(mv_name):
