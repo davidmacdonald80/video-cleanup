@@ -1,5 +1,5 @@
 from rename.fname_rename_l import fname_rename
-from mv.chk_season import check_season
+from pymv.chk_season import check_season
 import os
 import glob
 import subprocess
