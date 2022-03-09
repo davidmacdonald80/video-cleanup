@@ -10,5 +10,7 @@ clean up name, and move to Shows to sorted Destination.
 /path/to/shows/  Sorts like this ->  Show.Name/S0xE0x/Show.Name.S0xE0x.Codec.Resolution.ext
 
 Requirements: 
+
 mkvtoolnix  "sudo apt install mkvtoolnix" or "https://mkvtoolnix.download/downloads.html"
+
 Send2Trash  "pip install send2trash"      or "https://pypi.org/project/Send2Trash/"
