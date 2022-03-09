@@ -10,16 +10,34 @@ import shutil
 
 #
 
+# ###### ERROR HANDLING!
 # ##### Create a log file
 # #### create better handling if there are multiple subtitle tracks
 # ### Create better handling if there are multiple video tracks
 # ## create better handling if there are multiple audio tracks
-# # Maybe check chapters for info tracks?
-# # maybe use Var in .split("/") for easy transition to Windows?
+# # Maybe check chapters for info tracks, not sure what i meant now
 # # maybe create settings file for global Vars
 # # find a way to handle escape characters? []() and others
 #
 # # other ideas - Search: # #?#
+
+# start Adjustable Vars
+# source folder to check
+ip = "/home/david/Downloads/jdownloader/"
+# Destination folder to move and sort shows into
+destpath = "/media/Videos/Current-Renewed.Seasons/"
+# temp folder to use (create if doesn't exist)
+tmp11 = "/tmp/cleanvid/"
+# Sub-title backup location
+subpath = "/media/Videos/subs/"
+#
+# mkvtoolnix binary locations
+mkv_info = "/usr/bin/mkvinfo "
+mkv_e = "/usr/bin/mkvextract "
+mkvmrg = "/usr/bin/mkvmerge "
+# Linux("/") or Windows("\")
+slsh = "/"
+# End Adjustable
 
 
 class bcolors:
@@ -39,30 +57,18 @@ class bcolors:
         self.ENDC = ""
 
 
-# source folder to check
-ip = "/home/david/Downloads/jdownloader/"
-# Destination folder to move and sort shows into
-destpath = "/media/Videos/Current-Renewed.Seasons/"
-# temp folder to use (create if doesn't exist)
-tmp11 = "/tmp/cleanvid/"
-# Sub-title backup location
-subpath = "/media/Videos/subs/"
-
 # start global vars
-mkv_info = "/usr/bin/mkvinfo "
-mkv_e = "/usr/bin/mkvextract "
-mkvmrg = "/usr/bin/mkvmerge "
-mkmer = "/usr/bin/mkvmerge -q --default-language 'eng' "
+mkmer = "-q --default-language 'eng' "
 chpw = " chapters "
 trks = " tracks "
 ffp_var1 = " -v error -hide_banner -show_format"
 ffp_var2 = " -show_entries stream_tags:format_tags"
 ff_prob = "ffprobe" + ffp_var1 + ffp_var2
-
+# remove individual dict() soon
 has_title = dict()
 mp4has_title = dict()
 mp4_title = dict()
-
+#
 master = dict()
 # create containers first for nested dict()
 # if further nesting is needed,
@@ -91,7 +97,7 @@ if not os.path.exists(tmp11):
 
 # needed to strip escape characters and needless stuff in name
 # rename folders first
-fname_rename(glob.glob(ip + "*/"))
+fname_rename(glob.glob(ip + "*" + slsh))
 # rename files next
 fname_rename(glob.glob(ip + "**", recursive=True))
 
@@ -145,8 +151,6 @@ for aa1, bb1 in master["mkv"].items():
     # video track and codec into master
     cmd42 = mkvmrg + "-i " + ip + aa1
     for vid2 in sbp_ret(cmd42):
-        vid1 = 0
-        cdc = ""
         if "Track ID" in vid2:
             # double check RegEx
             vt = re.match(r"(Track ID )(\d): (video )\((.{3,4})\/.+", vid2)
@@ -379,7 +383,8 @@ for aa8, bb8 in master["mkv"].items():
         elif master["mkv"][aa8]["notshow"] == "1":
             aa8a = master["mkv"][aa8]["name"] + "." + master["mkv"][aa8]["Vcodec"]
         aa8e = (
-            mkmer
+            mkvmrg
+            + mkmer
             + aa8d
             + " "
             + master["mkv"][aa8]["tvideo"]
@@ -505,7 +510,7 @@ for path9 in Path(ip).rglob("*"):
 # #?# maybe delete bogus subs?
 # #?# maybe keep same folder structure as DESTPATH?
 for path4 in Path(tmp11).rglob("*.srt"):
-    p4dst = str(path4).split("/")
+    p4dst = str(path4).split(slsh)
     p4dst = subpath + p4dst[len(p4dst) - 1]
     mvsubs = shutil.move(str(path4), p4dst)
     print(bcolors.OKGREEN + "Moving sub: " + bcolors.ENDC, mvsubs)
