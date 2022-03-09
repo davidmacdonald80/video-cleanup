@@ -19,9 +19,10 @@ import shutil
 # # maybe create settings file for global Vars
 # # find a way to handle escape characters? []() and others
 #
-# # other ideas - Search: # #?#
+# # other ideas - Search: #?#
 
 # start Adjustable Vars
+#
 # source folder to check
 ip = "/home/david/Downloads/jdownloader/"
 # Destination folder to move and sort shows into
@@ -74,7 +75,7 @@ master = dict()
 # if further nesting is needed,
 # will need to declair it up front for easy append
 # or until I understand nested dict better
-master = {"mkv": {}, "mp4": {}, "avi": {}, "m4v": {}}
+master = {"mkv": {}, "mp4": {}, "dst": {}}
 # end global vars
 
 
@@ -471,39 +472,79 @@ fname_rename(glob.glob(ip + "**", recursive=True))
 # Most likely re-write everything here for sing dict()
 # still a lot to do before this
 
-# dest_shows = dict()
+dest_shows = dict()
 
-# dest_list = glob.glob(destpath + "*/")
+dest_list = glob.glob(destpath + "*/")
 
-# for cur_list in dest_list:
-#     cl1 = cur_list.split("/")
-#     dest_shows[cl1[4]] = cur_list
+for dst_lst in dest_list:
+    dl1 = dst_lst.split(slsh)
+    dest_shows[dl1[4]] = dst_lst
+    print("dl1[4]: ", dl1[4])
+    print("cur_l: ", dst_lst)
+    # dl1[4]:  Big.Shot
+    # cur_l:  /media/Videos/Current-Renewed.Seasons/Big.Shot/
+    # dl1[4]:  Charmed.2018
+    # cur_l:  /media/Videos/Current-Renewed.Seasons/Charmed.2018/
+
 
 re_ext = re.compile(r".+\.(?:mp4|mkv|avi|m4v)$")
 re_se = re.compile(r"(.+?)\.((s|S)(\d{1,2})(e|E)(\d{1,2}))")
-re_yr = re.compile(r"((.+)\.(\d+$))")
+re_yr = re.compile(r"((.+)\.(\d{4}$))")
+
+# redo to master
 mv_name = dict()
 
 # don't delete below til re-write!
 
 for path9 in Path(ip).rglob("*"):
-    str_path9 = str(path9)
     if re_ext.match(path9.name):
         if re_se.match(path9.name):
             x9 = re.match(r"(.*?)\.(S|s)(\d{1,2})(E|e)(\d{1,2})", path9.name)
-            # for k, v in dest_shows.items():
-            #     if k.lower() == x9[1].lower():
-            #         mv_name[path9] = check_season(path9, v, path9.name, k)
-            #     elif re.match(r"((.+)\.(\d+$))", x9[1]):
-            #         ww = re.match(r"((.+?)\.(\d+$))", x9[1])
-            #         if k.lower() == ww[2].lower():
-            #             mv_name[path9] = check_season(path9, v, path9.name, k)
-            #     elif re_yr.match(k):
-            #         ww = re.match(r"((.+)\.(\d+$))", k)
-            #         if x9[1].lower() == ww[2].lower():
-            #             mv_name[path9] = check_season(path9, v, path9.name, k)
-            # else:
-            #     continue
+            for k, v in dest_shows.items():
+                if k.lower() == x9[1].lower():
+                    print("if:")
+                    print("path9: ", path9)
+                    print("v: ", v)
+                    print("k: ", k)
+                    print("x9[1]: ", x9[1])
+                    mv_name[path9] = check_season(path9, v, path9.name, k)
+                elif re_yr.match(x9[1]):
+                    ww = re_yr.match(x9[1])
+                    if k.lower() == ww[2].lower():
+                        print("elif1: ")
+                        print("path9: ", path9)
+                        print("v: ", v)
+                        print("k: ", k)
+                        print("ww[2]: ", ww[2])
+                        mv_name[path9] = check_season(path9, v, path9.name, k)
+                    elif re_yr.match(k):
+                        ww = re_yr.match(k)
+                        if x9[1].lower() == ww[2].lower():
+                            print("elif2: ")
+                            print("path9: ", path9)
+                            print("v: ", v)
+                            print("x9[1]: ", x9[1])
+                            print("ww[2]: ", ww[2])
+                            mv_name[path9] = check_season(path9, v, path9.name, k)
+                else:
+                    continue
+    # if:
+    # path9:  /home/david/Downloads/jdownloader/Big.Shot.S01E33.HEVC.mkv
+    # v:  /media/Videos/Current-Renewed.Seasons/Big.Shot/
+    # k:  Big.Shot
+    # x9[1]:  Big.Shot
+
+    # elif1:
+    # path9:  /home/david/Downloads/jdownloader/Big.Shot.2019.S01E34.HEVC.mkv
+    # v:  /media/Videos/Current-Renewed.Seasons/Big.Shot/
+    # k:  Big.Shot
+    # ww[2]:  Big.Shot
+
+    # elif2:
+    # path9:  /home/david/Downloads/jdownloader/Charmed.S03E33.HEVC.mkv
+    # v:  /media/Videos/Current-Renewed.Seasons/Charmed.2018/
+    # x9[1]:  Charmed
+    # ww[2]:  Charmed
 
 
 #
