@@ -1,7 +1,7 @@
 import re
 import glob
 import os
-from pymv.get_info import mkv_get_info
+
 
 # need_rn = 0
 re_se = re.compile(r"(.*?)((S)(\d{1,2}))((E)(\d{1,2}))")
@@ -72,9 +72,9 @@ def check_season(src_file, dst_folder, src_name, dst_name):
         + "E"
         + sss[5]
         + "."
-        + hd_ver
-        + "."
         + codec
+        + "."
+        + hd_ver
         + ext
     )
 

@@ -1,5 +1,5 @@
 from rename.fname_rename_l import fname_rename
-from pymv.chk_season import check_season
+from pymv.get_info import mkv_get_info
 import os
 import glob
 import subprocess
@@ -18,15 +18,18 @@ import shutil
 # # Maybe check chapters for info tracks, not sure what i meant now
 # # maybe create settings file for global Vars
 # # find a way to handle escape characters? []() and others
+# # find a way to check that mp4/mkv is really that type container
+# #     not just a renamed file extension
 #
 # # other ideas - Search: #?#
 
 # start Adjustable Vars
 #
-# source folder to check
+# source folder to check (must end in slash)
 ip = "/home/david/Downloads/jdownloader/"
-# Destination folder to move and sort shows into
-destpath = "/media/Videos/Current-Renewed.Seasons/"
+# Destination folder to move and sort shows into (must end in slash)
+# destpath = "/media/Videos/Current-Renewed.Seasons/"  # changed @ work
+destpath = "/home/david/tmp/"
 # temp folder to use (create if doesn't exist)
 tmp11 = "/tmp/cleanvid/"
 # Sub-title backup location
@@ -65,18 +68,90 @@ trks = " tracks "
 ffp_var1 = " -v error -hide_banner -show_format"
 ffp_var2 = " -show_entries stream_tags:format_tags"
 ff_prob = "ffprobe" + ffp_var1 + ffp_var2
-# remove individual dict() soon
-has_title = dict()
-mp4has_title = dict()
-mp4_title = dict()
-#
 master = dict()
 # create containers first for nested dict()
 # if further nesting is needed,
 # will need to declair it up front for easy append
 # or until I understand nested dict better
 master = {"mkv": {}, "mp4": {}, "dst": {}}
+#
+re_se = re.compile(r"(.+?)\.((s|S)(\d{1,2})(e|E)(\d{1,2}))")
+re_ext = re.compile(r".+\.(?:mp4|mkv|avi|m4v)$")
+re_yr = re.compile(r"((.+)\.(\d{4}$))")
 # end global vars
+
+
+def check_season(src_file, dst_folder, src_name, dst_name):
+    sss = re_se.match(src_name)
+    sea_list = glob.glob(dst_folder + "*" + slsh)
+    dsm_chk = 0
+    for dst_sea_lst in sea_list:
+        dsl1 = dst_sea_lst.rstrip()
+        dsl1 = dsl1.split(slsh)
+        n1dsl = len(dsl1) - 2
+        re_dst_sea = re.compile(r"(.*?)\w.(\d{1,2})")
+        # split season so can match just number
+        dsp1 = re_dst_sea.match(dsl1[n1dsl])
+        if sss[4] == str(dsp1[2]):
+            dsm_chk = 1
+        else:
+            continue
+    if dsm_chk == 0:
+        new_sea = dst_folder + "Season." + sss[4]
+        os.mkdir(new_sea)
+        print("Directory '% s' created" % new_sea)
+        # print("didn't match season number, created it")
+
+    ex = 0
+    ea = ""
+    numa = 0
+    eb = ""
+    numb = 0
+    ec = ""
+    numc = 0
+    for ext1 in src_name:
+        ex = ex + 1
+    numa = ex - 2
+    numb = ex - 1
+    numc = ex
+    ex = 0
+    for ext1 in src_name:
+        ex = ex + 1
+        if ex == numa:
+            ea = ext1
+        if ex == numb:
+            eb = ext1
+        if ex == numc:
+            ec = ext1
+    ext = "." + ea + eb + ec
+
+    if ext == ".mkv":
+        hd_ver, codec = mkv_get_info(src_file)
+    elif ext == ".mp4":
+        print("haven't written mp4")
+        print("quitting for now! but get to it!")
+        quit()
+    else:
+        print("Missing Container extension and process")
+
+    mv_name = (
+        dst_folder
+        + "Season."
+        + sss[4]
+        + "/"
+        + dst_name
+        + ".S"
+        + sss[4]
+        + "E"
+        + sss[6]
+        + "."
+        + codec
+        + "."
+        + hd_ver
+        + ext
+    )
+    # print("mv_name: ", mv_name)
+    return mv_name
 
 
 def sbp_ret(x1x):
@@ -132,8 +207,6 @@ for path1 in Path(ip).rglob("*.mkv"):
     }
     chk1 = re.match(r"(.+?)\.((s|S)(\d{1,2})(e|E)(\d{1,2}))", path1.name)
     if chk1 is None:
-        # #?# could put continue to not process
-        # maybe add setting here for later?
         master["mkv"][path1.name]["notshow"] = "1"
     nm = path1.name.split(".mkv")
     master["mkv"][path1.name]["name"] = nm[0]
@@ -413,54 +486,42 @@ fname_rename(glob.glob(ip + "**", recursive=True))
 # #### begin checking MP4 ########
 # ################################
 
-# test - probably keep and build from
 for path2 in Path(ip).rglob("*.mp4"):
-    a = str(path2.expanduser()).split(path2.name)
-    if a[0] is None:
-        continue
     master["mp4"][path2.name] = {
-        "something": "0",
-        "something": "-1",
-        "something": "a",
-        "something": "0",
-        "something": "-1",
-        "something": "0",
+        "m4parent": "0",
+        "m4title": "-1",
     }
-
-#
-# edit or re-write to use master["mp4"]
-#
-for path3 in Path(ip).rglob("*.mp4"):
-    a4 = str(path3.expanduser()).split(path3.name)
-    if a4 is None:
-        continue
-    mp4_title[path3.name] = a4[0]
+    master["mp4"][path2.name]["m4parent"] = path2.parent
 
 # check if mp4 has a title
-for aa4, bb4 in mp4_title.items():
-    cmd30 = ff_prob + " " + bb4 + aa4
+for aa4, bb4 in master["mp4"].items():
+    cmd30 = ff_prob + " " + str(master["mp4"][aa4]["m4parent"] / aa4)
     for mtitle in sbp_ret(cmd30):
         if "TAG:title=" not in mtitle:
             continue
         else:
-            mp4has_title[aa4] = bb4
+            master["mp4"][aa4]["m4title"] = "1"
 
+#
+# #?# use ffmpeg instead of converting to mkv
+#
 # do conversion of files in dictionary
-for rm1, rm2 in mp4has_title.items():
-    rmof = rm2 + rm1
-    rm1n = os.path.splitext(rm1)
-    mkv_nm = rm2 + rm1n[0] + ".mkv"
-    rmcmd = mkvmrg + "-q -o " + mkv_nm + " -S " + rmof
-    if os.path.exists(mkv_nm):
-        print(
-            bcolors.WARNING + "Exists, why? Overwriting: " + bcolors.ENDC,
-            mkv_nm,
-        )
-    print(bcolors.OKGREEN + "removing title from: " + bcolors.ENDC, rmof)
-    sbp_run(rmcmd)
-    print(bcolors.OKBLUE + "deleting orig: " + bcolors.ENDC, rmof)
-    send2trash.send2trash(rmof)
-    print()
+for rm1, rm2 in master["mp4"].items():
+    if master["mp4"][rm1]["m4title"] == "1":
+        rmof = master["mp4"][rm1]["m4parent"] / rm1
+        rm1a = rm1.split(".mp4")
+        rm1b = rm1a[0] + ".mkv"
+        rmcmd = mkvmrg + "-q --title '' -o " + ip + rm1b + " -S " + str(rmof)
+        if os.path.exists(ip + rm1b):
+            print(
+                bcolors.WARNING + "Exists, why? Overwriting: " + bcolors.ENDC,
+                rm1b,
+            )
+        print(bcolors.OKGREEN + "removing title from: " + bcolors.ENDC, rmof)
+        sbp_run(rmcmd)
+        print(bcolors.OKBLUE + "deleting orig: " + bcolors.ENDC, rmof)
+        send2trash.send2trash(rmof)
+        print()
 
 fname_rename(glob.glob(ip + "**", recursive=True))
 
@@ -474,27 +535,11 @@ fname_rename(glob.glob(ip + "**", recursive=True))
 
 dest_shows = dict()
 
-dest_list = glob.glob(destpath + "*/")
+dest_list = glob.glob(destpath + "*" + slsh)
 
 for dst_lst in dest_list:
     dl1 = dst_lst.split(slsh)
     dest_shows[dl1[4]] = dst_lst
-    print("dl1[4]: ", dl1[4])
-    print("cur_l: ", dst_lst)
-    # dl1[4]:  Big.Shot
-    # cur_l:  /media/Videos/Current-Renewed.Seasons/Big.Shot/
-    # dl1[4]:  Charmed.2018
-    # cur_l:  /media/Videos/Current-Renewed.Seasons/Charmed.2018/
-
-
-re_ext = re.compile(r".+\.(?:mp4|mkv|avi|m4v)$")
-re_se = re.compile(r"(.+?)\.((s|S)(\d{1,2})(e|E)(\d{1,2}))")
-re_yr = re.compile(r"((.+)\.(\d{4}$))")
-
-# redo to master
-mv_name = dict()
-
-# don't delete below til re-write!
 
 for path9 in Path(ip).rglob("*"):
     if re_ext.match(path9.name):
@@ -502,50 +547,17 @@ for path9 in Path(ip).rglob("*"):
             x9 = re.match(r"(.*?)\.(S|s)(\d{1,2})(E|e)(\d{1,2})", path9.name)
             for k, v in dest_shows.items():
                 if k.lower() == x9[1].lower():
-                    print("if:")
-                    print("path9: ", path9)
-                    print("v: ", v)
-                    print("k: ", k)
-                    print("x9[1]: ", x9[1])
-                    mv_name[path9] = check_season(path9, v, path9.name, k)
+                    master["dst"][path9] = check_season(path9, v, path9.name, k)
                 elif re_yr.match(x9[1]):
                     ww = re_yr.match(x9[1])
                     if k.lower() == ww[2].lower():
-                        print("elif1: ")
-                        print("path9: ", path9)
-                        print("v: ", v)
-                        print("k: ", k)
-                        print("ww[2]: ", ww[2])
-                        mv_name[path9] = check_season(path9, v, path9.name, k)
-                    elif re_yr.match(k):
-                        ww = re_yr.match(k)
-                        if x9[1].lower() == ww[2].lower():
-                            print("elif2: ")
-                            print("path9: ", path9)
-                            print("v: ", v)
-                            print("x9[1]: ", x9[1])
-                            print("ww[2]: ", ww[2])
-                            mv_name[path9] = check_season(path9, v, path9.name, k)
+                        master["dst"][path9] = check_season(path9, v, path9.name, k)
+                elif re_yr.match(k):
+                    ww = re_yr.match(k)
+                    if x9[1].lower() == ww[2].lower():
+                        master["dst"][path9] = check_season(path9, v, path9.name, k)
                 else:
                     continue
-    # if:
-    # path9:  /home/david/Downloads/jdownloader/Big.Shot.S01E33.HEVC.mkv
-    # v:  /media/Videos/Current-Renewed.Seasons/Big.Shot/
-    # k:  Big.Shot
-    # x9[1]:  Big.Shot
-
-    # elif1:
-    # path9:  /home/david/Downloads/jdownloader/Big.Shot.2019.S01E34.HEVC.mkv
-    # v:  /media/Videos/Current-Renewed.Seasons/Big.Shot/
-    # k:  Big.Shot
-    # ww[2]:  Big.Shot
-
-    # elif2:
-    # path9:  /home/david/Downloads/jdownloader/Charmed.S03E33.HEVC.mkv
-    # v:  /media/Videos/Current-Renewed.Seasons/Charmed.2018/
-    # x9[1]:  Charmed
-    # ww[2]:  Charmed
-
 
 #
 # #?# maybe delete bogus subs?
@@ -555,8 +567,6 @@ for path4 in Path(tmp11).rglob("*.srt"):
     p4dst = subpath + p4dst[len(p4dst) - 1]
     mvsubs = shutil.move(str(path4), p4dst)
     print(bcolors.OKGREEN + "Moving sub: " + bcolors.ENDC, mvsubs)
-
-    # disabled at work
 
 for path5 in Path(tmp11).rglob("*"):
     if ".srt" in str(path5):
@@ -569,14 +579,12 @@ for path6 in Path(ip).rglob("*.htm"):
 print(bcolors.OKBLUE + "Junk files deleted" + bcolors.ENDC)
 
 # another safeguard check, probably need more as this probably doesn't work
-# if not bool(mv_name):
-#     # print("mv_name: ", mv_name)
+# if not bool(master["dst"]):
+#     # print("master["dst"]: ", master["dst"])
 #     # print("nothing prcessed, quitting")
 #     quit()
 
 
-# print("mv_name: ", mv_name)
-
-# print("last: ", master["mkv"])
+# print('master["dst"]: ', master["dst"])
 
 print("successfully finished, excluding unreported errors")
