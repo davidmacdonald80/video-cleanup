@@ -28,8 +28,7 @@ import shutil
 # source folder to check (must end in slash)
 ip = "/home/david/Downloads/jdownloader/"
 # Destination folder to move and sort shows into (must end in slash)
-# destpath = "/media/Videos/Current-Renewed.Seasons/"  # changed @ work
-destpath = "/home/david/tmp/"
+destpath = "/media/Videos/Current-Renewed.Seasons/"
 # temp folder to use (create if doesn't exist)
 tmp11 = "/tmp/cleanvid/"
 # Sub-title backup location
@@ -100,7 +99,6 @@ def check_season(src_file, dst_folder, src_name, dst_name):
         new_sea = dst_folder + "Season." + sss[4]
         os.mkdir(new_sea)
         print("Directory '% s' created" % new_sea)
-        # print("didn't match season number, created it")
 
     ex = 0
     ea = ""
@@ -150,7 +148,6 @@ def check_season(src_file, dst_folder, src_name, dst_name):
         + hd_ver
         + ext
     )
-    # print("mv_name: ", mv_name)
     return mv_name
 
 
@@ -503,7 +500,7 @@ for aa4, bb4 in master["mp4"].items():
             master["mp4"][aa4]["m4title"] = "1"
 
 #
-# #?# use ffmpeg instead of converting to mkv
+# #?# use ffmpeg instead of mkvmerge for converting mp4s
 #
 # do conversion of files in dictionary
 for rm1, rm2 in master["mp4"].items():
@@ -525,13 +522,9 @@ for rm1, rm2 in master["mp4"].items():
 
 fname_rename(glob.glob(ip + "**", recursive=True))
 
-
 # #########################################
 # Begin sorting process for move to NAS
 # #########################################
-
-# Most likely re-write everything here for sing dict()
-# still a lot to do before this
 
 dest_shows = dict()
 
@@ -548,14 +541,21 @@ for path9 in Path(ip).rglob("*"):
             for k, v in dest_shows.items():
                 if k.lower() == x9[1].lower():
                     master["dst"][path9] = check_season(path9, v, path9.name, k)
+                    shutil.move(str(path9), str(master["dst"][path9]))
+                    print("Moved: ", str(master["dst"][path9]))
                 elif re_yr.match(x9[1]):
                     ww = re_yr.match(x9[1])
                     if k.lower() == ww[2].lower():
                         master["dst"][path9] = check_season(path9, v, path9.name, k)
+                        shutil.move(str(path9), str(master["dst"][path9]))
+                        print("Moved: ", str(master["dst"][path9]))
                 elif re_yr.match(k):
+                    # print("test")
                     ww = re_yr.match(k)
                     if x9[1].lower() == ww[2].lower():
                         master["dst"][path9] = check_season(path9, v, path9.name, k)
+                        shutil.move(str(path9), str(master["dst"][path9]))
+                        print("Moved: ", str(master["dst"][path9]))
                 else:
                     continue
 
@@ -577,14 +577,5 @@ print(bcolors.OKBLUE + "Temp folder cleared" + bcolors.ENDC)
 for path6 in Path(ip).rglob("*.htm"):
     os.remove(path6)
 print(bcolors.OKBLUE + "Junk files deleted" + bcolors.ENDC)
-
-# another safeguard check, probably need more as this probably doesn't work
-# if not bool(master["dst"]):
-#     # print("master["dst"]: ", master["dst"])
-#     # print("nothing prcessed, quitting")
-#     quit()
-
-
-# print('master["dst"]: ', master["dst"])
 
 print("successfully finished, excluding unreported errors")
