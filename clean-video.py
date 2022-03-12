@@ -38,8 +38,6 @@ subpath = "/media/Videos/subs/"
 mkv_info = "/usr/bin/mkvinfo "
 mkv_e = "/usr/bin/mkvextract "
 mkvmrg = "/usr/bin/mkvmerge "
-# Linux("/") or Windows("\")
-slsh = "/"
 # End Adjustable
 
 
@@ -61,6 +59,7 @@ class bcolors:
 
 
 # start global vars
+slsh = "/"
 mkmer = "-q --default-language 'eng' "
 chpw = " chapters "
 trks = " tracks "
@@ -423,12 +422,13 @@ for aa6, bb6 in master["mkv"].items():
 # #?# or find a better way to detect un-needed chapter exports
 # start check/delete useless chapters
 for aa7, bb7 in master["mkv"].items():
+    # print(aa7)
     if master["mkv"][aa7]["tchapters"] != "0":
         if Path(master["mkv"][aa7]["tchapters"]).stat().st_size < 975:
             os.remove(master["mkv"][aa7]["tchapters"])
             master["mkv"][aa7]["tchapters"] = "0"
 # end check/delete useless chapters
-
+#
 # start rebuilding MKVs
 for aa8, bb8 in master["mkv"].items():
     if master["mkv"][aa8]["change"] == "1":
@@ -452,7 +452,7 @@ for aa8, bb8 in master["mkv"].items():
                 + master["mkv"][aa8]["Vcodec"]
             )
         elif master["mkv"][aa8]["notshow"] == "1":
-            aa8a = master["mkv"][aa8]["name"] + "." + master["mkv"][aa8]["Vcodec"]
+            aa8a = master["mkv"][aa8]["name"]
         aa8e = (
             mkvmrg
             + mkmer
@@ -558,10 +558,19 @@ for path9 in Path(ip).rglob("*"):
                         print("Moved: ", str(master["dst"][path9]))
                 else:
                     continue
-
+        # else:
+        #     cmd50 = mkv_info + str(path9)
+        #     for duration in sbp_ret(cmd50):
+        #         if "Duration:" in duration:
+        #             d50 = duration.split("Duration: ")
+        #             d50 = tuple(d50[1].split(":"))
+        #             print(d50)
+        # master["mkv"][path9]["subti"] == 1:
+        #     # mkv_get_info()
+        #     print("yes")
 #
 # #?# maybe delete bogus subs?
-# #?# maybe keep same folder structure as DESTPATH?
+# # #?# maybe keep same folder structure as DESTPATH?
 for path4 in Path(tmp11).rglob("*.srt"):
     p4dst = str(path4).split(slsh)
     p4dst = subpath + p4dst[len(p4dst) - 1]
@@ -576,6 +585,10 @@ print(bcolors.OKBLUE + "Temp folder cleared" + bcolors.ENDC)
 
 for path6 in Path(ip).rglob("*.htm"):
     os.remove(path6)
+for path7 in Path(ip).rglob("*.txt"):
+    os.remove(path7)
+for path8 in Path(ip).rglob("*.nfo"):
+    os.remove(path8)
 print(bcolors.OKBLUE + "Junk files deleted" + bcolors.ENDC)
 
 print("successfully finished, excluding unreported errors")

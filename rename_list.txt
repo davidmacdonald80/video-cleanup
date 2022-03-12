@@ -6,6 +6,10 @@
 -no-subs-
 -changed-
 -CHANGED-
+-MiNX
+-MeGusta
+-CMRG
+.HEVC.HEVC
 п
 ▒
 Б
