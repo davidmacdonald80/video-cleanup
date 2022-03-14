@@ -7,6 +7,7 @@ import send2trash
 from pathlib import Path
 import re
 import shutil
+import xml.etree.ElementTree as ET
 
 #
 
@@ -428,7 +429,23 @@ for aa7, bb7 in master["mkv"].items():
             os.remove(master["mkv"][aa7]["tchapters"])
             master["mkv"][aa7]["tchapters"] = "0"
 # end check/delete useless chapters
-#
+
+# Begin chapter word replace
+for ab1, ab2 in master["mkv"].items():
+    if master["mkv"][aa7]["tchapters"] != "0":
+        xmlTree = ET.parse(master["mkv"][aa7]["tchapters"])
+        rootElement = xmlTree.getroot()
+        for element in rootElement.findall("EditionEntry"):
+            for element2 in element.findall("ChapterAtom"):
+                for element3 in element2.findall("ChapterDisplay"):
+                    if element3.find("ChapterString").text.startswith("CapÃ­tulo"):
+                        rpl = element3.find("ChapterString").text.split(" ")
+                        element3.find("ChapterString").text = "Chapter " + rpl[1]
+        xmlTree.write(
+            master["mkv"][aa7]["tchapters"], encoding="UTF-8", xml_declaration=True
+        )
+# end chapter word replace
+
 # start rebuilding MKVs
 for aa8, bb8 in master["mkv"].items():
     if master["mkv"][aa8]["change"] == "1":
@@ -583,12 +600,18 @@ for path5 in Path(tmp11).rglob("*"):
     os.remove(path5)
 print(bcolors.OKBLUE + "Temp folder cleared" + bcolors.ENDC)
 
-for path6 in Path(ip).rglob("*.htm"):
-    os.remove(path6)
-for path7 in Path(ip).rglob("*.txt"):
-    os.remove(path7)
-for path8 in Path(ip).rglob("*.nfo"):
-    os.remove(path8)
+for path6 in Path(ip).rglob("*"):
+    path6a = str(path6)
+    if path6a.lower().endswith(".htm"):
+        os.remove(path6)
+    if path6a.lower().endswith(".txt"):
+        os.remove(path6)
+    if path6a.lower().endswith(".nfo"):
+        os.remove(path6)
+    if path6.is_dir():
+        os.rmdir(path6)
+
 print(bcolors.OKBLUE + "Junk files deleted" + bcolors.ENDC)
+
 
 print("successfully finished, excluding unreported errors")
