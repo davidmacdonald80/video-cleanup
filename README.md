@@ -14,3 +14,5 @@ Requirements:
 mkvtoolnix  "sudo apt install mkvtoolnix" or "https://mkvtoolnix.download/downloads.html"
 
 Send2Trash  "pip install send2trash"      or "https://pypi.org/project/Send2Trash/"
+
+ffmpeg    "sudo apt install ffmpeg"       or "https://ffmpeg.org/download.html"
