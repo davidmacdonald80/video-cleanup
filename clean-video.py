@@ -7,6 +7,7 @@ import send2trash
 from pathlib import Path
 import re
 import shutil
+import xml.etree.ElementTree as ET
 
 #
 
@@ -38,8 +39,6 @@ subpath = "/media/Videos/subs/"
 mkv_info = "/usr/bin/mkvinfo "
 mkv_e = "/usr/bin/mkvextract "
 mkvmrg = "/usr/bin/mkvmerge "
-# Linux("/") or Windows("\")
-slsh = "/"
 # End Adjustable
 
 
@@ -61,6 +60,7 @@ class bcolors:
 
 
 # start global vars
+slsh = "/"
 mkmer = "-q --default-language 'eng' "
 chpw = " chapters "
 trks = " tracks "
@@ -423,11 +423,28 @@ for aa6, bb6 in master["mkv"].items():
 # #?# or find a better way to detect un-needed chapter exports
 # start check/delete useless chapters
 for aa7, bb7 in master["mkv"].items():
+    # print(aa7)
     if master["mkv"][aa7]["tchapters"] != "0":
         if Path(master["mkv"][aa7]["tchapters"]).stat().st_size < 975:
             os.remove(master["mkv"][aa7]["tchapters"])
             master["mkv"][aa7]["tchapters"] = "0"
 # end check/delete useless chapters
+
+# Begin chapter word replace
+for ab1, ab2 in master["mkv"].items():
+    if master["mkv"][aa7]["tchapters"] != "0":
+        xmlTree = ET.parse(master["mkv"][aa7]["tchapters"])
+        rootElement = xmlTree.getroot()
+        for element in rootElement.findall("EditionEntry"):
+            for element2 in element.findall("ChapterAtom"):
+                for element3 in element2.findall("ChapterDisplay"):
+                    if element3.find("ChapterString").text.startswith("CapÃ­tulo"):
+                        rpl = element3.find("ChapterString").text.split(" ")
+                        element3.find("ChapterString").text = "Chapter " + rpl[1]
+        xmlTree.write(
+            master["mkv"][aa7]["tchapters"], encoding="UTF-8", xml_declaration=True
+        )
+# end chapter word replace
 
 # start rebuilding MKVs
 for aa8, bb8 in master["mkv"].items():
@@ -452,7 +469,7 @@ for aa8, bb8 in master["mkv"].items():
                 + master["mkv"][aa8]["Vcodec"]
             )
         elif master["mkv"][aa8]["notshow"] == "1":
-            aa8a = master["mkv"][aa8]["name"] + "." + master["mkv"][aa8]["Vcodec"]
+            aa8a = master["mkv"][aa8]["name"]
         aa8e = (
             mkvmrg
             + mkmer
@@ -535,6 +552,8 @@ for dst_lst in dest_list:
     dest_shows[dl1[4]] = dst_lst
 
 for path9 in Path(ip).rglob("*"):
+    if str(path9).endswith(".part"):
+        continue
     if re_ext.match(path9.name):
         if re_se.match(path9.name):
             x9 = re.match(r"(.*?)\.(S|s)(\d{1,2})(E|e)(\d{1,2})", path9.name)
@@ -558,10 +577,20 @@ for path9 in Path(ip).rglob("*"):
                         print("Moved: ", str(master["dst"][path9]))
                 else:
                     continue
+        # else:
+        #     cmd50 = mkv_info + str(path9)
+        #     for duration in sbp_ret(cmd50):
+        #         if "Duration:" in duration:
+        #             d50 = duration.split("Duration: ")
+        #             d50 = tuple(d50[1].split(":"))
+        #             print(d50)
+        # master["mkv"][path9]["subti"] == 1:
+        #     # mkv_get_info()
+        #     print("yes")
 
 #
 # #?# maybe delete bogus subs?
-# #?# maybe keep same folder structure as DESTPATH?
+# # #?# maybe keep same folder structure as DESTPATH?
 for path4 in Path(tmp11).rglob("*.srt"):
     p4dst = str(path4).split(slsh)
     p4dst = subpath + p4dst[len(p4dst) - 1]
@@ -574,8 +603,20 @@ for path5 in Path(tmp11).rglob("*"):
     os.remove(path5)
 print(bcolors.OKBLUE + "Temp folder cleared" + bcolors.ENDC)
 
-for path6 in Path(ip).rglob("*.htm"):
-    os.remove(path6)
+for path6 in Path(ip).rglob("*"):
+    path6a = str(path6)
+    if path6a.lower().endswith(".htm"):
+        os.remove(path6)
+    elif path6a.lower().endswith(".txt"):
+        os.remove(path6)
+    elif path6a.lower().endswith(".nfo"):
+        os.remove(path6)
+    elif path6a.lower().endswith(".url"):
+        os.remove(path6)
+    elif path6.is_dir():
+        shutil.rmtree(path6)
+
 print(bcolors.OKBLUE + "Junk files deleted" + bcolors.ENDC)
+
 
 print("successfully finished, excluding unreported errors")
