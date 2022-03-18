@@ -10,6 +10,7 @@
 -MeGusta
 -CMRG
 .HEVC.HEVC
+.AVC.AVC
 п
 ▒
 Б

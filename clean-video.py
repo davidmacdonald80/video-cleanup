@@ -552,6 +552,8 @@ for dst_lst in dest_list:
     dest_shows[dl1[4]] = dst_lst
 
 for path9 in Path(ip).rglob("*"):
+    if str(path9).endswith(".part"):
+        continue
     if re_ext.match(path9.name):
         if re_se.match(path9.name):
             x9 = re.match(r"(.*?)\.(S|s)(\d{1,2})(E|e)(\d{1,2})", path9.name)
@@ -585,6 +587,7 @@ for path9 in Path(ip).rglob("*"):
         # master["mkv"][path9]["subti"] == 1:
         #     # mkv_get_info()
         #     print("yes")
+
 #
 # #?# maybe delete bogus subs?
 # # #?# maybe keep same folder structure as DESTPATH?
@@ -604,12 +607,14 @@ for path6 in Path(ip).rglob("*"):
     path6a = str(path6)
     if path6a.lower().endswith(".htm"):
         os.remove(path6)
-    if path6a.lower().endswith(".txt"):
+    elif path6a.lower().endswith(".txt"):
         os.remove(path6)
-    if path6a.lower().endswith(".nfo"):
+    elif path6a.lower().endswith(".nfo"):
         os.remove(path6)
-    if path6.is_dir():
-        os.rmdir(path6)
+    elif path6a.lower().endswith(".url"):
+        os.remove(path6)
+    elif path6.is_dir():
+        shutil.rmtree(path6)
 
 print(bcolors.OKBLUE + "Junk files deleted" + bcolors.ENDC)
 

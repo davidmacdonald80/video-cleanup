@@ -4,6 +4,8 @@ import re
 
 def fname_rename(x):
     for y in x:
+        if str(y).endswith(".part"):
+            continue
         zz = y
         zr = "0"
         renlist = open("rename_list.txt", "r")
