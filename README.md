@@ -8,7 +8,7 @@ clean up name, and move to Shows to sorted Destination.
 /path/to/subs/
 
 /path/to/shows/  Sorts like this ->  Show.Name/Season.xx/Show.Name.S0xE0x.Codec.Resolution.ext
-## /path/to/shows/Show.Name/ must exist but Season.xx will be auto created if needed.
+--> /path/to/shows/Show.Name/ must exist but Season.xx will be auto created if needed.
 
 Requirements: 
 
