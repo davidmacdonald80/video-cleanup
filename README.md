@@ -1,5 +1,7 @@
 # video-cleanup
 
+writing this on debian/ubuntu based Pop OS.  Not tested on any other flavor or Windows.
+
 first python app and learning github at the same time.
 
 cleans media files (mkv and mp4 currently) of Title and subtitles by exporting tracks and rebuilding a clean file, maintains any chapters if they exist.
