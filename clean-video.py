@@ -298,6 +298,7 @@ for aa3, bb3 in master["mkv"].items():
                 break
             tr7d = mkv_e + ip + aa3 + trks + master["mkv"][aa3]["videotr"] + ":" + tr7f
             sbp_run(tr7d)
+            logging.info(tr7d)
             master["mkv"][aa3]["tvideo"] = tr7f
         elif int(master["mkv"][aa3]["videotr"]) > 0:
             while int(master["mkv"][aa3]["videotr"]) >= 0:
@@ -631,7 +632,7 @@ for path4 in Path(tmp11).rglob("*.srt"):
 for path5 in Path(tmp11).rglob("*"):
     if ".srt" in str(path5):
         continue
-    os.remove(path5)
+    send2trash.send2trash(path5)
 print(bcolors.OKBLUE + "Temp folder cleared" + bcolors.ENDC)
 
 for path6 in Path(ip).rglob("*"):
