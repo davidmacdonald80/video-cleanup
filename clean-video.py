@@ -8,11 +8,13 @@ from pathlib import Path
 import re
 import shutil
 import xml.etree.ElementTree as ET
+import logging
+from os import path
+from pymediainfo import MediaInfo
 
 #
 
-# ###### ERROR HANDLING!
-# ##### Create a log file
+# ##### use Multiprocessing to speed up extract and reconstitution?
 # #### create better handling if there are multiple subtitle tracks
 # ### Create better handling if there are multiple video tracks
 # ## create better handling if there are multiple audio tracks
@@ -34,6 +36,7 @@ destpath = "/media/Videos/Current-Renewed.Seasons/"
 tmp11 = "/tmp/cleanvid/"
 # Sub-title backup location
 subpath = "/media/Videos/subs/"
+logfile = "/home/david/Downloads/clean-move.log"
 #
 # mkvtoolnix binary locations
 mkv_info = "/usr/bin/mkvinfo "
@@ -58,6 +61,13 @@ class bcolors:
         self.FAIL = ""
         self.ENDC = ""
 
+
+logging.basicConfig(
+    filename=logfile,
+    format="%(asctime)s - %(message)s",
+    datefmt="%y-%b-%d %H:%M:%S",
+    level=logging.INFO,
+)
 
 # start global vars
 slsh = "/"
@@ -168,6 +178,17 @@ def sbp_run(x2x):
 if not os.path.exists(tmp11):
     os.makedirs(tmp11)
 
+for folderlist in glob.glob(ip + "*/"):
+    if path.isdir(folderlist):
+        # print(folderlist)
+        for filelist in glob.glob(folderlist + "*"):
+            # print(filelist)
+            # print(type(filelist))
+            filename = filelist.split("/")
+            filename = filename[(len(filename) - 1)]
+            # print(filename)
+            shutil.move(filelist, (ip + filename))
+
 # needed to strip escape characters and needless stuff in name
 # rename folders first
 fname_rename(glob.glob(ip + "*" + slsh))
@@ -190,6 +211,7 @@ for path1 in Path(ip).rglob("*.mkv"):
         "audiotr": "-1",
         "Acodec": "0",
         "subti": "0",
+        "Adelay": "0",
         # "dstPath": "0", # maybe add back later or useless now?
         "name": "0",
         "sea": "0",
@@ -219,30 +241,44 @@ for aa1, bb1 in master["mkv"].items():
             master["mkv"][aa1]["change"] = "1"
         elif "Title:" in chap1:
             master["mkv"][aa1]["change"] = "1"
+# split complexity 1
+for ac1, bc1 in master["mkv"].items():
     # video track and codec into master
-    cmd42 = mkvmrg + "-i " + ip + aa1
+    cmd42 = mkvmrg + "-i " + ip + ac1
     for vid2 in sbp_ret(cmd42):
         if "Track ID" in vid2:
             # double check RegEx
             vt = re.match(r"(Track ID )(\d): (video )\((.{3,4})\/.+", vid2)
             if vt is None:
                 continue
-            master["mkv"][aa1]["videotr"] = vt[2]
-            master["mkv"][aa1]["Vcodec"] = vt[4]
-            if int(master["mkv"][aa1]["videotr"]) > 0:
-                master["mkv"][aa1]["change"] = "1"
-
+            master["mkv"][ac1]["videotr"] = vt[2]
+            master["mkv"][ac1]["Vcodec"] = vt[4]
+            if int(master["mkv"][ac1]["videotr"]) > 0:
+                master["mkv"][ac1]["change"] = "1"
+# split complexity 2
+for ac2, bc2 in master["mkv"].items():
+    cmd42 = mkvmrg + "-i " + ip + ac2
     # audio track into master (default track is 1 if master is 0)
     for aud2 in sbp_ret(cmd42):
         if "subtitles" in aud2:
-            master["mkv"][aa1]["subti"] = "1"
-            master["mkv"][aa1]["change"] = "1"
+            master["mkv"][ac2]["subti"] = "1"
+            master["mkv"][ac2]["change"] = "1"
         elif "Track ID" in aud2:
             at = re.match(r"(Track ID )(\d): (audio )\((.+)\)", aud2)
             if at is None:
                 continue
-            master["mkv"][aa1]["Acodec"] = at[4]
-            master["mkv"][aa1]["audiotr"] = at[2]
+            # select first only (might need to change to look for title on trk)
+            if master["mkv"][ac2]["audiotr"] == "-1":
+                master["mkv"][ac2]["Acodec"] = at[4]
+                master["mkv"][ac2]["audiotr"] = at[2]
+# check audio delay and set if needed
+for ac3, bc3 in master["mkv"].items():
+    for track in MediaInfo.parse(ip + ac3).tracks:
+        if track.track_type == "Audio":
+            if track.delay_relative_to_video is not None:
+                if track.delay_relative_to_video != 0:
+                    # print(type(track.delay_relative_to_video))
+                    master["mkv"][ac3]["Adelay"] = track.delay_relative_to_video
 # end master
 
 # start update
@@ -279,11 +315,13 @@ for aa3, bb3 in master["mkv"].items():
                     + master["mkv"][aa3]["Vcodec"]
                 )
             else:
+                logging.info("video extract failed on {}".format(aa3))
                 print("broken in video extract")
                 print("breaking on: ", aa3)
                 break
             tr7d = mkv_e + ip + aa3 + trks + master["mkv"][aa3]["videotr"] + ":" + tr7f
             sbp_run(tr7d)
+            logging.info(tr7d)
             master["mkv"][aa3]["tvideo"] = tr7f
         elif int(master["mkv"][aa3]["videotr"]) > 0:
             while int(master["mkv"][aa3]["videotr"]) >= 0:
@@ -307,6 +345,7 @@ for aa3, bb3 in master["mkv"].items():
                         + master["mkv"][aa3]["Vcodec"]
                     )
                 else:
+                    logging.info("video extract failed on {}".format(aa3))
                     print("something is broken in Video Extract")
                     print("breaking while for file: ", aa3)
                     break
@@ -314,6 +353,7 @@ for aa3, bb3 in master["mkv"].items():
                     mkv_e + ip + aa3 + trks + master["mkv"][aa3]["videotr"] + ":" + tr7f
                 )
                 sbp_run(tr7d)
+                logging.info(tr7d)
                 if master["mkv"][aa3]["audiotr"] == "0":
                     master["mkv"][aa3]["tvideo"] = tr7f
                     tr7j = tr7f.split(".")
@@ -368,11 +408,13 @@ for aa4, bb4 in master["mkv"].items():
         elif master["mkv"][aa4]["notshow"] == "1":
             aa4e = tmp11 + aa4c + "." + aa4b
         else:
+            logging.info("broke on {}".format(aa4))
             print("something broken in audio extract")
             print("breaking on: ", aa4)
             break
         aa4f = mkv_e + ip + aa4 + trks + aa4a + ":" + aa4e
         sbp_run(aa4f)
+        logging.info(aa4f)
         master["mkv"][aa4]["taudio"] = aa4e
 # end audio extract
 
@@ -388,11 +430,13 @@ for aa5, bb5 in master["mkv"].items():
             elif master["mkv"][aa5]["notshow"] == "1":
                 aa5c = tmp11 + aa5a + ".xml"
             else:
+                logging.info("broke on {}".format(aa5))
                 print("something broken in chapter extract")
                 print("breaking on: ", aa5)
                 break
             aa5d = mkv_e + ip + aa5 + chpw + aa5c
             sbp_run(aa5d)
+            logging.info(aa5d)
             master["mkv"][aa5]["tchapters"] = aa5c
 # end chapter extract
 
@@ -411,11 +455,13 @@ for aa6, bb6 in master["mkv"].items():
         elif master["mkv"][aa6]["notshow"] == "1":
             aa6d = tmp11 + aa6a + ".srt"
         else:
+            logging.info("broke on {}".format(aa6))
             print("broken - subtitle extract")
             print("breaking on: ", aa6)
             break
         aa6e = mkv_e + ip + aa6 + trks + aa6b + ":" + aa6d
         sbp_run(aa6e)
+        logging.info(aa6e)
         master["mkv"][aa6]["tsubs"] = aa6d
 # end subtitle extract
 
@@ -426,6 +472,7 @@ for aa7, bb7 in master["mkv"].items():
     # print(aa7)
     if master["mkv"][aa7]["tchapters"] != "0":
         if Path(master["mkv"][aa7]["tchapters"]).stat().st_size < 975:
+            logging.info("removing {}".format(master["mkv"][aa7]["tchapters"]))
             os.remove(master["mkv"][aa7]["tchapters"])
             master["mkv"][aa7]["tchapters"] = "0"
 # end check/delete useless chapters
@@ -470,25 +517,55 @@ for aa8, bb8 in master["mkv"].items():
             )
         elif master["mkv"][aa8]["notshow"] == "1":
             aa8a = master["mkv"][aa8]["name"]
-        aa8e = (
-            mkvmrg
-            + mkmer
-            + aa8d
-            + " "
-            + master["mkv"][aa8]["tvideo"]
-            + " "
-            + master["mkv"][aa8]["taudio"]
-            + " -o "
-            + ip
-            + aa8a
-            + "-CHANGED-"
-            + ".mkv"
-        )
+        if master["mkv"][ac3]["Adelay"] != "0":
+            aa8e = (
+                mkvmrg
+                + mkmer
+                + aa8d
+                + " "
+                + master["mkv"][aa8]["tvideo"]
+                + " --sync -1:"
+                + str(master["mkv"][aa8]["Adelay"])
+                + " "
+                + master["mkv"][aa8]["taudio"]
+                + " -o "
+                + ip
+                + aa8a
+                + "-CHANGED-"
+                + ".mkv"
+            )
+            # print(aa8e)
+            # quit()
+            # mkvmrg1 = (
+            #     mkvmrg1
+            #     + "-y "
+            #     + str(master["mkv"][ac3]["audiotr"])
+            #     + ":"
+            #     + str(master["mkv"][ac3]["Adelay"])
+            #     + " "
+            # )
+        else:
+            aa8e = (
+                mkvmrg
+                + mkmer
+                + aa8d
+                + " "
+                + master["mkv"][aa8]["tvideo"]
+                + " "
+                + master["mkv"][aa8]["taudio"]
+                + " -o "
+                + ip
+                + aa8a
+                + "-CHANGED-"
+                + ".mkv"
+            )
         aa8h = ip + aa8
         print(bcolors.OKBLUE + "Recreating: " + bcolors.ENDC, aa8)
         sbp_run(aa8e)
+        logging.info(aa8e)
         print(bcolors.OKBLUE + "deleting orig: " + bcolors.ENDC, aa8h)
         send2trash.send2trash(aa8h)
+        logging.info("sending to trash {}".format(aa8h))
         print()
 # end rebuilding MKVs
 
@@ -533,8 +610,10 @@ for rm1, rm2 in master["mp4"].items():
             )
         print(bcolors.OKGREEN + "removing title from: " + bcolors.ENDC, rmof)
         sbp_run(rmcmd)
+        logging.info(rmcmd)
         print(bcolors.OKBLUE + "deleting orig: " + bcolors.ENDC, rmof)
         send2trash.send2trash(rmof)
+        logging.info("deleting {}".format(rmof))
         print()
 
 fname_rename(glob.glob(ip + "**", recursive=True))
@@ -561,12 +640,14 @@ for path9 in Path(ip).rglob("*"):
                 if k.lower() == x9[1].lower():
                     master["dst"][path9] = check_season(path9, v, path9.name, k)
                     shutil.move(str(path9), str(master["dst"][path9]))
+                    logging.info("moved to {}".format(str(master["dst"][path9])))
                     print("Moved: ", str(master["dst"][path9]))
                 elif re_yr.match(x9[1]):
                     ww = re_yr.match(x9[1])
                     if k.lower() == ww[2].lower():
                         master["dst"][path9] = check_season(path9, v, path9.name, k)
                         shutil.move(str(path9), str(master["dst"][path9]))
+                        logging.info("moved to {}".format(str(master["dst"][path9])))
                         print("Moved: ", str(master["dst"][path9]))
                 elif re_yr.match(k):
                     # print("test")
@@ -574,6 +655,7 @@ for path9 in Path(ip).rglob("*"):
                     if x9[1].lower() == ww[2].lower():
                         master["dst"][path9] = check_season(path9, v, path9.name, k)
                         shutil.move(str(path9), str(master["dst"][path9]))
+                        logging.info("moved to {}".format(str(master["dst"][path9])))
                         print("Moved: ", str(master["dst"][path9]))
                 else:
                     continue
@@ -595,17 +677,20 @@ for path4 in Path(tmp11).rglob("*.srt"):
     p4dst = str(path4).split(slsh)
     p4dst = subpath + p4dst[len(p4dst) - 1]
     mvsubs = shutil.move(str(path4), p4dst)
+    logging.info("moved sub to {}".format(p4dst))
     print(bcolors.OKGREEN + "Moving sub: " + bcolors.ENDC, mvsubs)
 
 for path5 in Path(tmp11).rglob("*"):
     if ".srt" in str(path5):
         continue
-    os.remove(path5)
+    send2trash.send2trash(path5)
 print(bcolors.OKBLUE + "Temp folder cleared" + bcolors.ENDC)
 
 for path6 in Path(ip).rglob("*"):
     path6a = str(path6)
     if path6a.lower().endswith(".htm"):
+        os.remove(path6)
+    elif path6a.lower().endswith(".html"):
         os.remove(path6)
     elif path6a.lower().endswith(".txt"):
         os.remove(path6)
