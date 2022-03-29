@@ -9,9 +9,12 @@ import re
 import shutil
 import xml.etree.ElementTree as ET
 import logging
+from os import path
+from pymediainfo import MediaInfo
 
 #
 
+# ##### use Multiprocessing to speed up extract and reconstitution?
 # #### create better handling if there are multiple subtitle tracks
 # ### Create better handling if there are multiple video tracks
 # ## create better handling if there are multiple audio tracks
@@ -175,6 +178,17 @@ def sbp_run(x2x):
 if not os.path.exists(tmp11):
     os.makedirs(tmp11)
 
+for folderlist in glob.glob(ip + "*/"):
+    if path.isdir(folderlist):
+        # print(folderlist)
+        for filelist in glob.glob(folderlist + "*"):
+            # print(filelist)
+            # print(type(filelist))
+            filename = filelist.split("/")
+            filename = filename[(len(filename) - 1)]
+            # print(filename)
+            shutil.move(filelist, (ip + filename))
+
 # needed to strip escape characters and needless stuff in name
 # rename folders first
 fname_rename(glob.glob(ip + "*" + slsh))
@@ -197,6 +211,7 @@ for path1 in Path(ip).rglob("*.mkv"):
         "audiotr": "-1",
         "Acodec": "0",
         "subti": "0",
+        "Adelay": "0",
         # "dstPath": "0", # maybe add back later or useless now?
         "name": "0",
         "sea": "0",
@@ -256,6 +271,14 @@ for ac2, bc2 in master["mkv"].items():
             if master["mkv"][ac2]["audiotr"] == "-1":
                 master["mkv"][ac2]["Acodec"] = at[4]
                 master["mkv"][ac2]["audiotr"] = at[2]
+# check audio delay and set if needed
+for ac3, bc3 in master["mkv"].items():
+    for track in MediaInfo.parse(ip + ac3).tracks:
+        if track.track_type == "Audio":
+            if track.delay_relative_to_video is not None:
+                if track.delay_relative_to_video != 0:
+                    # print(type(track.delay_relative_to_video))
+                    master["mkv"][ac3]["Adelay"] = track.delay_relative_to_video
 # end master
 
 # start update
@@ -494,20 +517,48 @@ for aa8, bb8 in master["mkv"].items():
             )
         elif master["mkv"][aa8]["notshow"] == "1":
             aa8a = master["mkv"][aa8]["name"]
-        aa8e = (
-            mkvmrg
-            + mkmer
-            + aa8d
-            + " "
-            + master["mkv"][aa8]["tvideo"]
-            + " "
-            + master["mkv"][aa8]["taudio"]
-            + " -o "
-            + ip
-            + aa8a
-            + "-CHANGED-"
-            + ".mkv"
-        )
+        if master["mkv"][ac3]["Adelay"] != "0":
+            aa8e = (
+                mkvmrg
+                + mkmer
+                + aa8d
+                + " "
+                + master["mkv"][aa8]["tvideo"]
+                + " --sync -1:"
+                + str(master["mkv"][aa8]["Adelay"])
+                + " "
+                + master["mkv"][aa8]["taudio"]
+                + " -o "
+                + ip
+                + aa8a
+                + "-CHANGED-"
+                + ".mkv"
+            )
+            # print(aa8e)
+            # quit()
+            # mkvmrg1 = (
+            #     mkvmrg1
+            #     + "-y "
+            #     + str(master["mkv"][ac3]["audiotr"])
+            #     + ":"
+            #     + str(master["mkv"][ac3]["Adelay"])
+            #     + " "
+            # )
+        else:
+            aa8e = (
+                mkvmrg
+                + mkmer
+                + aa8d
+                + " "
+                + master["mkv"][aa8]["tvideo"]
+                + " "
+                + master["mkv"][aa8]["taudio"]
+                + " -o "
+                + ip
+                + aa8a
+                + "-CHANGED-"
+                + ".mkv"
+            )
         aa8h = ip + aa8
         print(bcolors.OKBLUE + "Recreating: " + bcolors.ENDC, aa8)
         sbp_run(aa8e)
@@ -638,6 +689,8 @@ print(bcolors.OKBLUE + "Temp folder cleared" + bcolors.ENDC)
 for path6 in Path(ip).rglob("*"):
     path6a = str(path6)
     if path6a.lower().endswith(".htm"):
+        os.remove(path6)
+    elif path6a.lower().endswith(".html"):
         os.remove(path6)
     elif path6a.lower().endswith(".txt"):
         os.remove(path6)

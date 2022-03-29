@@ -4,12 +4,15 @@ import re
 
 def fname_rename(x):
     for y in x:
+        if y.endswith("/"):
+            continue
         if str(y).endswith(".part"):
             continue
         zz = y
         zr = "0"
         renlist = open("rename_list.txt", "r")
         # match and rename Directories first
+        zz = zz.replace(" ", ".")
         if re.match(r"^\/(.+)([\/])$", y):
             if "'" in zz:
                 zz = zz.translate(str.maketrans({"'": None}))
