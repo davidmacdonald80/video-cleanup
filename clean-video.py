@@ -1,5 +1,6 @@
 from rename.fname_rename_l import fname_rename
 from pymv.get_info import mkv_get_info
+from pymv.get_info import mp4_get_info
 import os
 import glob
 import subprocess
@@ -136,9 +137,7 @@ def check_season(src_file, dst_folder, src_name, dst_name):
     if ext == ".mkv":
         hd_ver, codec = mkv_get_info(src_file)
     elif ext == ".mp4":
-        print("haven't written mp4")
-        print("quitting for now! but get to it!")
-        quit()
+        hd_ver, codec = mp4_get_info(src_file)
     else:
         print("Missing Container extension and process")
 

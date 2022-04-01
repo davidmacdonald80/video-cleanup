@@ -1,4 +1,5 @@
 import subprocess
+from pymediainfo import MediaInfo
 
 mkv_info = "/usr/bin/mkvinfo "
 
@@ -36,4 +37,20 @@ def mkv_get_info(u):
             else:
                 print("Video codec not identified")
     hdv = w2 + "x" + h2
+    return hdv, codec
+
+
+def mp4_get_info(u):
+    h2 = "-1"
+    w2 = "-1"
+    hdv = str()
+    codec = "-1"
+    for track in MediaInfo.parse(u).tracks:
+        if (h2 != "-1") and (w2 != "-1") and (codec != "-1"):
+            break
+        elif track.track_type == "Video":
+            codec = track.format
+            h2 = track.height
+            w2 = track.width
+    hdv = str(w2) + "x" + str(h2)
     return hdv, codec
