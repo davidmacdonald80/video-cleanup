@@ -29,12 +29,23 @@ from pymediainfo import MediaInfo
 
 # start Adjustable Vars
 #
-# source folder to check (must end in slash)
-ip = "/home/david/Downloads/jdownloader/"
+# added ramdisk ability to avoid needles writes to SSD drives
+# set to 0 for hdd/sata/nvme source drive and tmp folder with trash ability
+# set to 1 for ramdisk source and tmp folder with additional folder for trash
+useramdsk = 1
+# source folder to check (must end in slash) and temp folder
+if useramdsk == 0:
+    ip = "/home/david/Downloads/jdownloader/"
+    tmp11 = "/tmp/cleanvid/"
+elif useramdsk == 1:
+    ip = "/tmp/ramdisk/clean/"
+    tmp11 = "/tmp/ramdisk/tmp/"
+    trash11 = "/tmp/ramdisk/trash/"
+else:
+    print("incorrect ramdisk setting, quitting")
+    quit()
 # Destination folder to move and sort shows into (must end in slash)
 destpath = "/media/Videos/Current-Renewed.Seasons/"
-# temp folder to use (create if doesn't exist)
-tmp11 = "/tmp/cleanvid/"
 # Sub-title backup location
 subpath = "/media/Videos/subs/"
 logfile = "/home/david/Downloads/clean-move.log"
@@ -563,7 +574,10 @@ for aa8, bb8 in master["mkv"].items():
         sbp_run(aa8e)
         logging.info(aa8e)
         print(bcolors.OKBLUE + "deleting orig: " + bcolors.ENDC, aa8h)
-        send2trash.send2trash(aa8h)
+        if useramdsk == 0:
+            send2trash.send2trash(aa8h)
+        elif useramdsk == 1:
+            shutil.move(aa8h, trash11 + aa8)
         logging.info("sending to trash {}".format(aa8h))
         print()
 # end rebuilding MKVs
@@ -611,11 +625,19 @@ for rm1, rm2 in master["mp4"].items():
         sbp_run(rmcmd)
         logging.info(rmcmd)
         print(bcolors.OKBLUE + "deleting orig: " + bcolors.ENDC, rmof)
-        send2trash.send2trash(rmof)
-        logging.info("deleting {}".format(rmof))
+        if useramdsk == 0:
+            send2trash.send2trash(rmof)
+        elif useramdsk == 1:
+            shutil.move(rmof, trash11 + rm1)
+        logging.info("trashing {}".format(rmof))
         print()
 
 fname_rename(glob.glob(ip + "**", recursive=True))
+
+# #####################################
+# ### Add AVI Support
+# ### #?#
+# #####################################
 
 # #########################################
 # Begin sorting process for move to NAS
@@ -631,6 +653,9 @@ for dst_lst in dest_list:
 
 for path9 in Path(ip).rglob("*"):
     if str(path9).endswith(".part"):
+        continue
+    elif str(path9).endswith(".avi"):
+        # #?# figure out needs for avi support
         continue
     if re_ext.match(path9.name):
         if re_se.match(path9.name):
@@ -682,7 +707,10 @@ for path4 in Path(tmp11).rglob("*.srt"):
 for path5 in Path(tmp11).rglob("*"):
     if ".srt" in str(path5):
         continue
-    send2trash.send2trash(path5)
+    if useramdsk == 0:
+        send2trash.send2trash(path5)
+    elif useramdsk == 1:
+        shutil.move(str(path5), trash11 + str(path5.name))
 print(bcolors.OKBLUE + "Temp folder cleared" + bcolors.ENDC)
 
 for path6 in Path(ip).rglob("*"):

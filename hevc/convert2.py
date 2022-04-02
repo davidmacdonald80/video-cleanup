@@ -96,9 +96,6 @@ def convert2hevc(srcvid, parent, stem):
         + ".HEVC"
         + ".mp4"
     )
-    # print()
-    # print(ff_mpeg)
-    # print()
     ffmpeg = shlex.split(ff_mpeg)
     p9 = subprocess.Popen(ffmpeg, preexec_fn=os.setsid)
     p9.communicate()
@@ -108,15 +105,11 @@ def convert2hevc(srcvid, parent, stem):
 clean264 = dict()
 
 
-# if __name__ == "__main__":
 manager = multiprocessing.Manager()
 jobs = []
 for path1 in Path(ip).rglob("*"):
-    # print(probe_file(path1))
     if probe_file_codec(path1) != "h264":
         continue
-    # path2 = str(path1)
-    # print(path1)
     return2 = manager.list()
     convert = multiprocessing.Process(
         target=convert2hevc,
@@ -126,7 +119,6 @@ for path1 in Path(ip).rglob("*"):
     logging.info("starting transcode of: {}".format(str(path1)))
     convert.start()
     clean264[str(path1)] = str(path1.parent) + "/" + str(path1.stem) + ".HEVC.mp4"
-    # print("jobs: ", jobs)
     while True:
         procName = "ffmpeg"
         time.sleep(2)
@@ -149,35 +141,14 @@ for j1 in jobs:
 
 # clean up another attempt
 for k, v in clean264.items():
-    # print("k: ", k)
-    # print("v: ", v)
-    # print("k dur: ", probe_duration(k))
-    # print("v dur: ", probe_duration(v))
     if probe_duration(k) == probe_duration(v):
-        sz = os.path.getsize(k) - 750000
+        sz = os.path.getsize(k) * 0.75
         if os.path.getsize(v) < sz:
             logging.info(" trashing {}".format(k))
             print("trash", k)
             send2trash.send2trash(k)
         else:
             logging.info("check file size on {}".format(k))
-            print("log, see if worth converting")
-        # print(os.path.getsize(k))
-        # print(os.path.getsize(v))
-
-        # send2trash.send2trash(k)
-        # logging.info("trashing {}".format(k))
-
-# clean up
-# for files in Path(ip).rglob("*"):
-#     if is265(str(files)) is True:
-#         list265[files.stem] = files
-#     elif is264(str(files)) is True:
-#         list264[files.stem] = files
-#     else:
-#         continue
-# for k in list265.keys():
-#     print(list265[k])
-#     if k in list264.keys():
-#         print(list264[k])
-#         # logging.info
+            print()
+            print("log, see if worth converting: {}".format(k))
+            print()
