@@ -1,6 +1,8 @@
 from rename.fname_rename_l import fname_rename
 from pymv.get_info import mkv_get_info
+from pymv.get_info import mp4_get_info
 import os
+import sys
 import glob
 import subprocess
 import send2trash
@@ -28,12 +30,23 @@ from pymediainfo import MediaInfo
 
 # start Adjustable Vars
 #
-# source folder to check (must end in slash)
-ip = "/home/david/Downloads/jdownloader/"
+# added ramdisk ability to avoid needles writes to SSD drives
+# set to 0 for hdd/sata/nvme source drive and tmp folder with trash ability
+# set to 1 for ramdisk source and tmp folder with additional folder for trash
+useramdsk = 1
+# source folder to check (must end in slash) and temp folder
+if useramdsk == 0:
+    ip = "/home/david/Downloads/jdownloader/"
+    tmp11 = "/tmp/cleanvid/"
+elif useramdsk == 1:
+    ip = "/tmp/ramdisk/clean/"
+    tmp11 = "/tmp/ramdisk/tmp/"
+    trash11 = "/tmp/ramdisk/trash/"
+else:
+    print("incorrect ramdisk setting, quitting")
+    quit()
 # Destination folder to move and sort shows into (must end in slash)
 destpath = "/media/Videos/Current-Renewed.Seasons/"
-# temp folder to use (create if doesn't exist)
-tmp11 = "/tmp/cleanvid/"
 # Sub-title backup location
 subpath = "/media/Videos/subs/"
 logfile = "/home/david/Downloads/clean-move.log"
@@ -42,6 +55,8 @@ logfile = "/home/david/Downloads/clean-move.log"
 mkv_info = "/usr/bin/mkvinfo "
 mkv_e = "/usr/bin/mkvextract "
 mkvmrg = "/usr/bin/mkvmerge "
+ff_mpg = "/usr/bin/ffmpeg -hide_banner "
+mkvpedit = "/usr/bin/mkvpropedit "
 # End Adjustable
 
 
@@ -136,9 +151,9 @@ def check_season(src_file, dst_folder, src_name, dst_name):
     if ext == ".mkv":
         hd_ver, codec = mkv_get_info(src_file)
     elif ext == ".mp4":
-        print("haven't written mp4")
-        print("quitting for now! but get to it!")
-        quit()
+        hd_ver, codec = mp4_get_info(src_file)
+    elif ext == ".m4v":
+        hd_ver, codec = mp4_get_info(src_file)
     else:
         print("Missing Container extension and process")
 
@@ -223,6 +238,8 @@ for path1 in Path(ip).rglob("*.mkv"):
         "taudio": "0",
         "tchapters": "0",
         "tsubs": "0",
+        "st_atime": "-1",
+        "st_mtime": "-1",
     }
     chk1 = re.match(r"(.+?)\.((s|S)(\d{1,2})(e|E)(\d{1,2}))", path1.name)
     if chk1 is None:
@@ -233,6 +250,9 @@ for path1 in Path(ip).rglob("*.mkv"):
 # start master
 # enter everything i'm looking for into Master from SRC folder
 for aa1, bb1 in master["mkv"].items():
+    Tstamp = os.stat(ip + aa1)
+    master["mkv"][aa1]["st_atime"] = Tstamp.st_atime
+    master["mkv"][aa1]["st_mtime"] = Tstamp.st_mtime
     cmd41 = mkv_info + ip + aa1
     for chap1 in sbp_ret(cmd41):
         if "Chapters" in chap1:
@@ -564,9 +584,16 @@ for aa8, bb8 in master["mkv"].items():
         sbp_run(aa8e)
         logging.info(aa8e)
         print(bcolors.OKBLUE + "deleting orig: " + bcolors.ENDC, aa8h)
-        send2trash.send2trash(aa8h)
+        if useramdsk == 0:
+            send2trash.send2trash(aa8h)
+        elif useramdsk == 1:
+            shutil.move(aa8h, trash11 + aa8)
         logging.info("sending to trash {}".format(aa8h))
         print()
+        aa8aa = ip + aa8a + "-CHANGED-.mkv"
+        os.utime(
+            aa8aa, (master["mkv"][aa8]["st_atime"], master["mkv"][aa8]["st_mtime"])
+        )
 # end rebuilding MKVs
 
 # start keep name tidy
@@ -581,17 +608,29 @@ for path2 in Path(ip).rglob("*.mp4"):
     master["mp4"][path2.name] = {
         "m4parent": "0",
         "m4title": "-1",
+        "m4st_atime": "-1",
+        "m4st_mtime": "-1",
+        # "m4Vtrack": "-1",
+        # "m4Atrack": "-1",
     }
     master["mp4"][path2.name]["m4parent"] = path2.parent
 
 # check if mp4 has a title
 for aa4, bb4 in master["mp4"].items():
+    Tstamp = os.stat(ip + aa4)
+    master["mp4"][aa4]["m4st_atime"] = Tstamp.st_atime
+    master["mp4"][aa4]["m4st_mtime"] = Tstamp.st_mtime
     cmd30 = ff_prob + " " + str(master["mp4"][aa4]["m4parent"] / aa4)
     for mtitle in sbp_ret(cmd30):
         if "TAG:title=" not in mtitle:
             continue
         else:
             master["mp4"][aa4]["m4title"] = "1"
+
+# Extract tracks
+# for ad1, bd1 in master["mp4"].items():
+#     pass
+# cmd31 = ff_mpg +
 
 #
 # #?# use ffmpeg instead of mkvmerge for converting mp4s
@@ -602,7 +641,15 @@ for rm1, rm2 in master["mp4"].items():
         rmof = master["mp4"][rm1]["m4parent"] / rm1
         rm1a = rm1.split(".mp4")
         rm1b = rm1a[0] + ".mkv"
-        rmcmd = mkvmrg + "-q --title '' -o " + ip + rm1b + " -S " + str(rmof)
+        rmcmd = (
+            mkvmrg
+            + "-q --clusters-in-meta-seek --title '' -o "
+            + ip
+            + rm1b
+            + " -S "
+            + str(rmof)
+        )
+        # print(rmcmd)
         if os.path.exists(ip + rm1b):
             print(
                 bcolors.WARNING + "Exists, why? Overwriting: " + bcolors.ENDC,
@@ -612,11 +659,28 @@ for rm1, rm2 in master["mp4"].items():
         sbp_run(rmcmd)
         logging.info(rmcmd)
         print(bcolors.OKBLUE + "deleting orig: " + bcolors.ENDC, rmof)
-        send2trash.send2trash(rmof)
-        logging.info("deleting {}".format(rmof))
+        # mkvpropedit Wentworth.S06E01.x264.mkv --edit track:v1 --set name="" track:a1 --set name=""
+        cmd32 = mkvpedit + ip + rm1b + " --edit track:v1 --set name=''"
+        sbp_run(cmd32)
+        cmd33 = mkvpedit + ip + rm1b + " --edit track:a1 --set name=''"
+        sbp_run(cmd33)
+        if useramdsk == 0:
+            send2trash.send2trash(rmof)
+        elif useramdsk == 1:
+            shutil.move(rmof, trash11 + rm1)
+        os.utime(
+            ip + rm1b,
+            (master["mp4"][aa4]["m4st_atime"], master["mp4"][aa4]["m4st_mtime"]),
+        )
+        logging.info("trashing {}".format(rmof))
         print()
 
 fname_rename(glob.glob(ip + "**", recursive=True))
+
+# #####################################
+# ### Add AVI Support
+# ### #?#
+# #####################################
 
 # #########################################
 # Begin sorting process for move to NAS
@@ -632,6 +696,9 @@ for dst_lst in dest_list:
 
 for path9 in Path(ip).rglob("*"):
     if str(path9).endswith(".part"):
+        continue
+    elif str(path9).endswith(".avi"):
+        # #?# figure out needs for avi support
         continue
     if re_ext.match(path9.name):
         if re_se.match(path9.name):
@@ -683,7 +750,10 @@ for path4 in Path(tmp11).rglob("*.srt"):
 for path5 in Path(tmp11).rglob("*"):
     if ".srt" in str(path5):
         continue
-    send2trash.send2trash(path5)
+    if useramdsk == 0:
+        send2trash.send2trash(path5)
+    elif useramdsk == 1:
+        shutil.move(str(path5), trash11 + str(path5.name))
 print(bcolors.OKBLUE + "Temp folder cleared" + bcolors.ENDC)
 
 for path6 in Path(ip).rglob("*"):
