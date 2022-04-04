@@ -10,8 +10,17 @@ import shlex
 import psutil
 import send2trash
 import logging
+import shutil
 
-ip = "/home/david/Downloads/jdownloader/"
+useramdsk = 1
+if useramdsk == 0:
+    ip = "/home/david/Downloads/jdownloader/"
+elif useramdsk == 1:
+    ip = "/tmp/ramdisk/clean/"
+    trsh11 = "/tmp/ramdisk/trash/"
+else:
+    print("ramdisk setting incorrect, quitting")
+    quit()
 fmpg0 = "/usr/bin/ffmpeg "
 fmpg1 = " -hide_banner -hwaccel auto -i "  # insert src + 2
 fmpg2 = (
@@ -146,7 +155,11 @@ for k, v in clean264.items():
         if os.path.getsize(v) < sz:
             logging.info(" trashing {}".format(k))
             print("trash", k)
-            send2trash.send2trash(k)
+            if useramdsk == 0:
+                send2trash.send2trash(k)
+            elif useramdsk == 1:
+                kname = k.split(ip)
+                shutil.move(k, trsh11 + kname[1])
         else:
             logging.info("check file size on {}".format(k))
             print()
