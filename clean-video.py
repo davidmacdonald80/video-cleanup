@@ -154,6 +154,8 @@ def check_season(src_file, dst_folder, src_name, dst_name):
         hd_ver, codec = mp4_get_info(src_file)
     elif ext == ".m4v":
         hd_ver, codec = mp4_get_info(src_file)
+    elif ext == ".avi":
+        hd_ver, codec = mp4_get_info(src_file)
     else:
         print("Missing Container extension and process")
 
@@ -296,7 +298,7 @@ for ac3, bc3 in master["mkv"].items():
     for track in MediaInfo.parse(ip + ac3).tracks:
         if track.track_type == "Audio":
             if track.delay_relative_to_video is not None:
-                if track.delay_relative_to_video != 0:
+                if track.delay_relative_to_video != "0":
                     # print(type(track.delay_relative_to_video))
                     master["mkv"][ac3]["Adelay"] = track.delay_relative_to_video
 # end master
@@ -627,14 +629,6 @@ for aa4, bb4 in master["mp4"].items():
         else:
             master["mp4"][aa4]["m4title"] = "1"
 
-# Extract tracks
-# for ad1, bd1 in master["mp4"].items():
-#     pass
-# cmd31 = ff_mpg +
-
-#
-# #?# use ffmpeg instead of mkvmerge for converting mp4s
-#
 # do conversion of files in dictionary
 for rm1, rm2 in master["mp4"].items():
     if master["mp4"][rm1]["m4title"] == "1":
@@ -678,7 +672,7 @@ for rm1, rm2 in master["mp4"].items():
 fname_rename(glob.glob(ip + "**", recursive=True))
 
 # #####################################
-# ### Add AVI Support
+# ### Add AVI Support to remove title?
 # ### #?#
 # #####################################
 
@@ -696,9 +690,6 @@ for dst_lst in dest_list:
 
 for path9 in Path(ip).rglob("*"):
     if str(path9).endswith(".part"):
-        continue
-    elif str(path9).endswith(".avi"):
-        # #?# figure out needs for avi support
         continue
     if re_ext.match(path9.name):
         if re_se.match(path9.name):
