@@ -30,10 +30,10 @@ from pymediainfo import MediaInfo
 
 # start Adjustable Vars
 #
-# added ramdisk ability to avoid needles writes to SSD drives
+# added ramdisk ability to avoid needless writes to SSD drives
 # set to 0 for hdd/sata/nvme source drive and tmp folder with trash ability
 # set to 1 for ramdisk source and tmp folder with additional folder for trash
-useramdsk = 1
+useramdsk = 0
 # source folder to check (must end in slash) and temp folder
 if useramdsk == 0:
     ip = "/home/david/Downloads/jdownloader/"
@@ -42,11 +42,14 @@ elif useramdsk == 1:
     ip = "/tmp/ramdisk/clean/"
     tmp11 = "/tmp/ramdisk/tmp/"
     trash11 = "/tmp/ramdisk/trash/"
+    if not os.path.exists(trash11):
+        os.makedirs(trash11)
 else:
     print("incorrect ramdisk setting, quitting")
     quit()
 # Destination folder to move and sort shows into (must end in slash)
 destpath = "/media/Videos/Current-Renewed.Seasons/"
+# destpath = "/media/Videos/Ended-Cancelled.Seasons/"
 # Sub-title backup location
 subpath = "/media/Videos/subs/"
 logfile = "/home/david/Downloads/clean-move.log"
@@ -178,6 +181,13 @@ def check_season(src_file, dst_folder, src_name, dst_name):
     return mv_name
 
 
+def check_comment(u):
+    for Track in MediaInfo.parse(u).tracks:
+        if not Track.track_type == "General":
+            continue
+        return Track.description
+
+
 def sbp_ret(x1x):
     subprocess1 = subprocess.Popen(x1x, shell=True, stdout=subprocess.PIPE)
     subprocess_return1 = subprocess1.stdout.read()
@@ -220,15 +230,15 @@ for path1 in Path(ip).rglob("*.mkv"):
     if a[0] is None:
         continue
     master["mkv"][path1.name] = {
-        "change": "0",
-        "chapters": "0",
+        "change": 0,
+        "chapters": 0,
         "videotr": "-1",
         "vtrnum": "a",
         "Vcodec": "0",
         "audiotr": "-1",
         "Acodec": "0",
-        "subti": "0",
-        "Adelay": "0",
+        "subti": 0,
+        "Adelay": 0,
         # "dstPath": "0", # maybe add back later or useless now?
         "name": "0",
         "sea": "0",
@@ -258,11 +268,11 @@ for aa1, bb1 in master["mkv"].items():
     cmd41 = mkv_info + ip + aa1
     for chap1 in sbp_ret(cmd41):
         if "Chapters" in chap1:
-            master["mkv"][aa1]["chapters"] = "1"
+            master["mkv"][aa1]["chapters"] = 1
         elif "Name:" in chap1:
-            master["mkv"][aa1]["change"] = "1"
+            master["mkv"][aa1]["change"] = 1
         elif "Title:" in chap1:
-            master["mkv"][aa1]["change"] = "1"
+            master["mkv"][aa1]["change"] = 1
 # split complexity 1
 for ac1, bc1 in master["mkv"].items():
     # video track and codec into master
@@ -276,15 +286,15 @@ for ac1, bc1 in master["mkv"].items():
             master["mkv"][ac1]["videotr"] = vt[2]
             master["mkv"][ac1]["Vcodec"] = vt[4]
             if int(master["mkv"][ac1]["videotr"]) > 0:
-                master["mkv"][ac1]["change"] = "1"
+                master["mkv"][ac1]["change"] = 1
 # split complexity 2
 for ac2, bc2 in master["mkv"].items():
     cmd42 = mkvmrg + "-i " + ip + ac2
     # audio track into master (default track is 1 if master is 0)
     for aud2 in sbp_ret(cmd42):
         if "subtitles" in aud2:
-            master["mkv"][ac2]["subti"] = "1"
-            master["mkv"][ac2]["change"] = "1"
+            master["mkv"][ac2]["subti"] = 1
+            master["mkv"][ac2]["change"] = 1
         elif "Track ID" in aud2:
             at = re.match(r"(Track ID )(\d): (audio )\((.+)\)", aud2)
             if at is None:
@@ -300,8 +310,25 @@ for ac3, bc3 in master["mkv"].items():
             if track.delay_relative_to_video is not None:
                 if track.delay_relative_to_video != "0":
                     # print(type(track.delay_relative_to_video))
-                    master["mkv"][ac3]["Adelay"] = track.delay_relative_to_video
+                    master["mkv"][ac3]["Adelay"] = int(track.delay_relative_to_video)
+                    logging.debug("set Adelay")
+                    logging.debug(ac3)
+                    logging.debug(type(master["mkv"][ac3]["Adelay"]))
+                    logging.debug(master["mkv"][ac3]["Adelay"])
+        else:
+            continue
 # end master
+
+# begin remove tags
+# for ac5 in Path(ip).rglob("*"):
+for ac5, bc5 in master["mkv"].items():
+    fac5 = ip + ac5
+    if check_comment(fac5) is not None:
+        cmd43 = mkvpedit + str(fac5) + " --tags all: --add-track-statistics-tags"
+        logging.info(cmd43)
+        sbp_run(cmd43)
+        os.utime(fac5, (master["mkv"][ac5]["st_atime"], master["mkv"][ac5]["st_mtime"]))
+# end remove tags
 
 # start update
 # update name, season, episode in master
@@ -318,7 +345,7 @@ for aa2, bb2 in master["mkv"].items():
 
 # start video extract
 for aa3, bb3 in master["mkv"].items():
-    if master["mkv"][aa3]["change"] == "1":
+    if master["mkv"][aa3]["change"] == 1:
         tr7e = ".S" + master["mkv"][aa3]["sea"] + "E" + master["mkv"][aa3]["epi"]
         if master["mkv"][aa3]["videotr"] == "0":
             if master["mkv"][aa3]["notshow"] == "0":
@@ -420,7 +447,7 @@ for aa9, bb9 in master["mkv"].items():
 # #?# Might have to add handling of multiple audio tracks to strip languages
 # start audio extract
 for aa4, bb4 in master["mkv"].items():
-    if master["mkv"][aa4]["change"] == "1":
+    if master["mkv"][aa4]["change"] == 1:
         aa4a = master["mkv"][aa4]["audiotr"]
         aa4b = master["mkv"][aa4]["Acodec"]
         aa4c = master["mkv"][aa4]["name"]
@@ -442,8 +469,8 @@ for aa4, bb4 in master["mkv"].items():
 
 # start chapter extract
 for aa5, bb5 in master["mkv"].items():
-    if master["mkv"][aa5]["change"] == "1":
-        if master["mkv"][aa5]["chapters"] == "1":
+    if master["mkv"][aa5]["change"] == 1:
+        if master["mkv"][aa5]["chapters"] == 1:
             aa5a = master["mkv"][aa5]["name"]
             aa5f = master["mkv"][aa5]["sea"]
             aa5b = ".S" + aa5f + "E" + master["mkv"][aa5]["epi"]
@@ -464,7 +491,7 @@ for aa5, bb5 in master["mkv"].items():
 
 # start subtitle extract
 for aa6, bb6 in master["mkv"].items():
-    if master["mkv"][aa6]["subti"] == "1":
+    if master["mkv"][aa6]["subti"] == 1:
         aa6a = master["mkv"][aa6]["name"]
         if master["mkv"][aa6]["audiotr"] == "0":
             aa6b = "2"
@@ -517,7 +544,7 @@ for ab1, ab2 in master["mkv"].items():
 
 # start rebuilding MKVs
 for aa8, bb8 in master["mkv"].items():
-    if master["mkv"][aa8]["change"] == "1":
+    if master["mkv"][aa8]["change"] == 1:
         if master["mkv"][aa8]["tchapters"] != "0":
             aa8c = master["mkv"][aa8]["tchapters"]
             aa8d = "--clusters-in-meta-seek -S --chapters " + aa8c
@@ -539,7 +566,7 @@ for aa8, bb8 in master["mkv"].items():
             )
         elif master["mkv"][aa8]["notshow"] == "1":
             aa8a = master["mkv"][aa8]["name"]
-        if master["mkv"][ac3]["Adelay"] != "0":
+        if master["mkv"][ac3]["Adelay"] != 0:
             aa8e = (
                 mkvmrg
                 + mkmer
@@ -556,16 +583,6 @@ for aa8, bb8 in master["mkv"].items():
                 + "-CHANGED-"
                 + ".mkv"
             )
-            # print(aa8e)
-            # quit()
-            # mkvmrg1 = (
-            #     mkvmrg1
-            #     + "-y "
-            #     + str(master["mkv"][ac3]["audiotr"])
-            #     + ":"
-            #     + str(master["mkv"][ac3]["Adelay"])
-            #     + " "
-            # )
         else:
             aa8e = (
                 mkvmrg
@@ -653,7 +670,7 @@ for rm1, rm2 in master["mp4"].items():
         sbp_run(rmcmd)
         logging.info(rmcmd)
         print(bcolors.OKBLUE + "deleting orig: " + bcolors.ENDC, rmof)
-        # mkvpropedit Wentworth.S06E01.x264.mkv --edit track:v1 --set name="" track:a1 --set name=""
+        # mkvpropedit Fname.S06E01.x264.mkv --edit track:v1 --set name="" track:a1 --set name=""
         cmd32 = mkvpedit + ip + rm1b + " --edit track:v1 --set name=''"
         sbp_run(cmd32)
         cmd33 = mkvpedit + ip + rm1b + " --edit track:a1 --set name=''"
@@ -661,6 +678,8 @@ for rm1, rm2 in master["mp4"].items():
         if useramdsk == 0:
             send2trash.send2trash(rmof)
         elif useramdsk == 1:
+            log2 = str(rmof) + " " + str(trash11) + str(rm1)
+            logging.info(log2)
             shutil.move(rmof, trash11 + rm1)
         os.utime(
             ip + rm1b,
@@ -744,6 +763,8 @@ for path5 in Path(tmp11).rglob("*"):
     if useramdsk == 0:
         send2trash.send2trash(path5)
     elif useramdsk == 1:
+        log1 = "Move: " + str(path5) + " " + trash11 + str(path5.name)
+        logging.info(log1)
         shutil.move(str(path5), trash11 + str(path5.name))
 print(bcolors.OKBLUE + "Temp folder cleared" + bcolors.ENDC)
 

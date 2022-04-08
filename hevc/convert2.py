@@ -12,7 +12,7 @@ import send2trash
 import logging
 import shutil
 
-useramdsk = 1
+useramdsk = 0
 if useramdsk == 0:
     ip = "/home/david/Downloads/jdownloader/"
 elif useramdsk == 1:
