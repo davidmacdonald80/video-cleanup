@@ -22,13 +22,16 @@ from pymediainfo import MediaInfo
 # ## create better handling if there are multiple audio tracks
 # # Maybe check chapters for info tracks, not sure what i meant now
 # # maybe create settings file for global Vars
-# # find a way to handle escape characters? []() and others
 # # find a way to check that mp4/mkv is really that type container
 # #     not just a renamed file extension
 #
 # # other ideas - Search: #?#
 
 # start Adjustable Vars
+#
+# Destination folder to move and sort shows into (must end in slash)
+destpath = "/media/Videos/Current-Renewed.Seasons/"
+# destpath = "/media/Videos/Ended-Cancelled.Seasons/"
 #
 # added ramdisk ability to avoid needless writes to SSD drives
 # set to 0 for hdd/sata/nvme source drive and tmp folder with trash ability
@@ -47,9 +50,6 @@ elif useramdsk == 1:
 else:
     print("incorrect ramdisk setting, quitting")
     quit()
-# Destination folder to move and sort shows into (must end in slash)
-destpath = "/media/Videos/Current-Renewed.Seasons/"
-# destpath = "/media/Videos/Ended-Cancelled.Seasons/"
 # Sub-title backup location
 subpath = "/media/Videos/subs/"
 logfile = "/home/david/Downloads/clean-move.log"
@@ -102,9 +102,12 @@ master = dict()
 # or until I understand nested dict better
 master = {"mkv": {}, "mp4": {}, "dst": {}}
 #
-re_se = re.compile(r"(.+?)\.((s|S)(\d{1,2})(e|E)(\d{1,2}))")
+re_se = re.compile(r"(.+)\.((s|S)(\d{1,2})(e|E)(\d{1,2}))")
 re_ext = re.compile(r".+\.(?:mp4|mkv|avi|m4v)$")
+re_del = re.compile(r"\.(?:nfo|txt|rtf|jpg|bmp|url|htm|html)")
 re_yr = re.compile(r"((.+)\.(\d{4}$))")
+re_yr2 = re.compile(r"(.+)( \(\d{4}\)$)")
+re_yr3 = re.compile(r"(.+)(\(\d{4}\)$)")
 # end global vars
 
 
@@ -708,12 +711,15 @@ for dst_lst in dest_list:
     dest_shows[dl1[4]] = dst_lst
 
 for path9 in Path(ip).rglob("*"):
+    # print("p9: ", path9)
     if str(path9).endswith(".part"):
         continue
     if re_ext.match(path9.name):
         if re_se.match(path9.name):
             x9 = re.match(r"(.*?)\.(S|s)(\d{1,2})(E|e)(\d{1,2})", path9.name)
             for k, v in dest_shows.items():
+                # print("k", k)
+                # print(x9[1].lower())
                 if k.lower() == x9[1].lower():
                     master["dst"][path9] = check_season(path9, v, path9.name, k)
                     shutil.move(str(path9), str(master["dst"][path9]))
@@ -723,7 +729,7 @@ for path9 in Path(ip).rglob("*"):
                     ww = re_yr.match(x9[1])
                     if k.lower() == ww[2].lower():
                         master["dst"][path9] = check_season(path9, v, path9.name, k)
-                        shutil.move(str(path9), str(master["dst"][path9]))
+                        shutil.move(str(path9), master["dst"][path9])
                         logging.info("moved to {}".format(str(master["dst"][path9])))
                         print("Moved: ", str(master["dst"][path9]))
                 elif re_yr.match(k):
@@ -731,31 +737,37 @@ for path9 in Path(ip).rglob("*"):
                     ww = re_yr.match(k)
                     if x9[1].lower() == ww[2].lower():
                         master["dst"][path9] = check_season(path9, v, path9.name, k)
-                        shutil.move(str(path9), str(master["dst"][path9]))
+                        shutil.move(str(path9), master["dst"][path9])
                         logging.info("moved to {}".format(str(master["dst"][path9])))
                         print("Moved: ", str(master["dst"][path9]))
+                elif re_yr2.match(k):
+                    ww = re_yr2.match(k)
+                    # print(k)
+                    if ww[1].lower() == x9[1].lower():
+                        master["dst"][path9] = check_season(path9, v, path9.name, k)
+                        shutil.move(str(path9), master["dst"][path9])
+                        logging.info("moved to {}".format(master["dst"][path9]))
+                        print("moved: ", str(master["dst"][path9]))
+                elif re_yr3.match(k):
+                    ww = re_yr3.match(k)
+                    if ww[1].lower() == x9[1].lower():
+                        master["dst"][path9] = check_season(path9, v, path9.name, k)
+                        shutil.move(str(path9), str(master["dst"][path9]))
+                        logging.info("moved to {}".format(master["dst"][path9]))
+                        print("moved: ", str(master["dst"][path9]))
                 else:
                     continue
-        # else:
-        #     cmd50 = mkv_info + str(path9)
-        #     for duration in sbp_ret(cmd50):
-        #         if "Duration:" in duration:
-        #             d50 = duration.split("Duration: ")
-        #             d50 = tuple(d50[1].split(":"))
-        #             print(d50)
-        # master["mkv"][path9]["subti"] == 1:
-        #     # mkv_get_info()
-        #     print("yes")
-
 #
-# #?# maybe delete bogus subs?
 # # #?# maybe keep same folder structure as DESTPATH?
 for path4 in Path(tmp11).rglob("*.srt"):
     p4dst = str(path4).split(slsh)
     p4dst = subpath + p4dst[len(p4dst) - 1]
-    mvsubs = shutil.move(str(path4), p4dst)
-    logging.info("moved sub to {}".format(p4dst))
-    print(bcolors.OKGREEN + "Moving sub: " + bcolors.ENDC, mvsubs)
+    if Path(path4).stat().st_size < 990:
+        os.remove(path4)
+    else:
+        mvsubs = shutil.move(str(path4), p4dst)
+        logging.info("moved sub to {}".format(p4dst))
+        print(bcolors.OKGREEN + "Moving sub: " + bcolors.ENDC, mvsubs)
 
 for path5 in Path(tmp11).rglob("*"):
     if ".srt" in str(path5):
@@ -768,22 +780,14 @@ for path5 in Path(tmp11).rglob("*"):
         shutil.move(str(path5), trash11 + str(path5.name))
 print(bcolors.OKBLUE + "Temp folder cleared" + bcolors.ENDC)
 
-for path6 in Path(ip).rglob("*"):
-    path6a = str(path6)
-    if path6a.lower().endswith(".htm"):
-        os.remove(path6)
-    elif path6a.lower().endswith(".html"):
-        os.remove(path6)
-    elif path6a.lower().endswith(".txt"):
-        os.remove(path6)
-    elif path6a.lower().endswith(".nfo"):
-        os.remove(path6)
-    elif path6a.lower().endswith(".url"):
-        os.remove(path6)
-    elif path6.is_dir():
-        shutil.rmtree(path6)
+for junkfile in Path(ip).rglob("*"):
+    if re_del.match(str(junkfile)):
+        os.remove(junkfile)
+    else:
+        continue
 
-print(bcolors.OKBLUE + "Junk files deleted" + bcolors.ENDC)
+
+print(bcolors.OKBLUE + "junk files deleted" + bcolors.ENDC)
 
 
 print("successfully finished, excluding unreported errors")

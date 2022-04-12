@@ -8,6 +8,7 @@
 -CHANGED-
 -MiNX
 -MeGusta
+-RARBG
 -CMRG
 .HEVC.HEVC
 .AVC.AVC
