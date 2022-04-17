@@ -30,13 +30,13 @@ from pymediainfo import MediaInfo
 # start Adjustable Vars
 #
 # Destination folder to move and sort shows into (must end in slash)
-destpath = "/media/Videos/Current-Renewed.Seasons/"
-# destpath = "/media/Videos/Ended-Cancelled.Seasons/"
+# destpath = "/media/Videos/Current-Renewed.Seasons/"
+destpath = "/media/Videos/Ended-Cancelled.Seasons/"
 #
 # added ramdisk ability to avoid needless writes to SSD drives
 # set to 0 for hdd/sata/nvme source drive and tmp folder with trash ability
 # set to 1 for ramdisk source and tmp folder with additional folder for trash
-useramdsk = 0
+useramdsk = 1
 # source folder to check (must end in slash) and temp folder
 if useramdsk == 0:
     ip = "/home/david/Downloads/jdownloader/"
@@ -100,7 +100,7 @@ master = dict()
 # if further nesting is needed,
 # will need to declair it up front for easy append
 # or until I understand nested dict better
-master = {"mkv": {}, "mp4": {}, "dst": {}}
+master = {"mkv": {}, "mp4": {}, "avi": {}, "dst": {}}
 #
 re_se = re.compile(r"(.+)\.((s|S)(\d{1,2})(e|E)(\d{1,2}))")
 re_ext = re.compile(r".+\.(?:mp4|mkv|avi|m4v)$")
@@ -191,6 +191,22 @@ def check_comment(u):
         return Track.description
 
 
+def check_Gen_title(u):
+    for Track in MediaInfo.parse(u).tracks:
+        if not Track.track_type == "General":
+            continue
+        else:
+            return Track.title
+
+
+def check_Aud_title(u):
+    for Track in MediaInfo.parse(u).tracks:
+        if not Track.track_type == "Audio":
+            continue
+        else:
+            return Track.title
+
+
 def sbp_ret(x1x):
     subprocess1 = subprocess.Popen(x1x, shell=True, stdout=subprocess.PIPE)
     subprocess_return1 = subprocess1.stdout.read()
@@ -204,6 +220,12 @@ def sbp_run(x2x):
     subprocess_return2
 
 
+# remove spaces from filenames
+for f in glob.glob(ip + "**"):
+    r = f.replace(" ", "")
+    if r != f:
+        os.rename(f, r)
+
 # check tmp folder
 if not os.path.exists(tmp11):
     os.makedirs(tmp11)
@@ -211,6 +233,7 @@ if not os.path.exists(tmp11):
 for folderlist in glob.glob(ip + "*/"):
     if path.isdir(folderlist):
         # print(folderlist)
+        deleteDir = folderlist
         for filelist in glob.glob(folderlist + "*"):
             # print(filelist)
             # print(type(filelist))
@@ -218,6 +241,10 @@ for folderlist in glob.glob(ip + "*/"):
             filename = filename[(len(filename) - 1)]
             # print(filename)
             shutil.move(filelist, (ip + filename))
+        try:
+            os.rmdir(folderlist)
+        except OSError as e:
+            print("Error: %s : %s" % (folderlist, e.strerror))
 
 # needed to strip escape characters and needless stuff in name
 # rename folders first
@@ -329,6 +356,7 @@ for ac5, bc5 in master["mkv"].items():
     if check_comment(fac5) is not None:
         cmd43 = mkvpedit + str(fac5) + " --tags all: --add-track-statistics-tags"
         logging.info(cmd43)
+        print("remove tags in {}".format(ac5))
         sbp_run(cmd43)
         os.utime(fac5, (master["mkv"][ac5]["st_atime"], master["mkv"][ac5]["st_mtime"]))
 # end remove tags
@@ -637,6 +665,17 @@ for path2 in Path(ip).rglob("*.mp4"):
     }
     master["mp4"][path2.name]["m4parent"] = path2.parent
 
+for path2 in Path(ip).rglob("*.m4v"):
+    master["mp4"][path2.name] = {
+        "m4parent": "0",
+        "m4title": "-1",
+        "m4st_atime": "-1",
+        "m4st_mtime": "-1",
+        # "m4Vtrack": "-1",
+        # "m4Atrack": "-1",
+    }
+    master["mp4"][path2.name]["m4parent"] = path2.parent
+
 # check if mp4 has a title
 for aa4, bb4 in master["mp4"].items():
     Tstamp = os.stat(ip + aa4)
@@ -676,8 +715,12 @@ for rm1, rm2 in master["mp4"].items():
         # mkvpropedit Fname.S06E01.x264.mkv --edit track:v1 --set name="" track:a1 --set name=""
         cmd32 = mkvpedit + ip + rm1b + " --edit track:v1 --set name=''"
         sbp_run(cmd32)
+        print("edit video track name on {}".format(rm1b))
+        logging.info(cmd32)
         cmd33 = mkvpedit + ip + rm1b + " --edit track:a1 --set name=''"
         sbp_run(cmd33)
+        print("edit audio track name on {}".format(rm1b))
+        logging.info(cmd33)
         if useramdsk == 0:
             send2trash.send2trash(rmof)
         elif useramdsk == 1:
@@ -692,11 +735,69 @@ for rm1, rm2 in master["mp4"].items():
         print()
 
 fname_rename(glob.glob(ip + "**", recursive=True))
+# End MP4
 
 # #####################################
-# ### Add AVI Support to remove title?
-# ### #?#
+# ### Begin AVI check/remove title
 # #####################################
+
+for fileAvi in Path(ip).rglob("*.avi"):
+    fAname = fileAvi.name
+    master["avi"][fAname] = {
+        "aviStem": "1",
+        "aviparent": "0",
+        "avititle": -1,
+        "avist_atime": "-1",
+        "avist_mtime": "-1",
+        "aviExt": "1",
+        # "m4Vtrack": "-1",
+        # "m4Atrack": "-1",
+    }
+    master["avi"][fAname]["aviparent"] = fileAvi.parent
+    master["avi"][fAname]["aviStem"] = fileAvi.stem
+    Tstamp = os.stat(str(fileAvi))
+    master["avi"][fAname]["avist_atime"] = Tstamp.st_atime
+    master["avi"][fAname]["avist_mtime"] = Tstamp.st_mtime
+    master["avi"][fAname]["aviExt"] = fileAvi.suffix
+    if check_Gen_title(fileAvi) is not None:
+        master["avi"][fAname]["avititle"] = 2
+    elif check_Aud_title(fileAvi) is not None:
+        master["avi"][fAname]["avititle"] = 2
+
+for rm3, rm4 in master["avi"].items():
+    if rm4["avititle"] > 1:
+        atmpname = (
+            ip
+            + master["avi"][rm3]["aviStem"]
+            + "-CHANGED-"
+            + master["avi"][rm3]["aviExt"]
+        )
+        afcmd = (
+            ff_mpg
+            + "-fflags +genpts "
+            + "-i "
+            + ip
+            + rm3
+            + " -map_metadata -1 -c:v copy -c:a copy "
+            + "-fflags +bitexact -flags:v +bitexact -flags:a +bitexact "
+            + atmpname
+        )
+        sbp_run(afcmd)
+        if useramdsk == 0:
+            send2trash.send2trash(ip + rm3)
+        elif useramdsk == 1:
+            log2 = ip + rm3 + " " + str(trash11) + rm3
+            logging.info(log2)
+            shutil.move(ip + rm3, trash11 + rm3)
+        os.utime(
+            atmpname,
+            (master["avi"][rm3]["avist_atime"], master["avi"][rm3]["avist_mtime"]),
+        )
+    else:
+        continue
+fname_rename(glob.glob(ip + "**", recursive=True))
+
+# end AVI check/remove title
 
 # #########################################
 # Begin sorting process for move to NAS
@@ -750,6 +851,7 @@ for path9 in Path(ip).rglob("*"):
                         print("moved: ", str(master["dst"][path9]))
                 elif re_yr3.match(k):
                     ww = re_yr3.match(k)
+                    # print(path9)
                     if ww[1].lower() == x9[1].lower():
                         master["dst"][path9] = check_season(path9, v, path9.name, k)
                         shutil.move(str(path9), str(master["dst"][path9]))

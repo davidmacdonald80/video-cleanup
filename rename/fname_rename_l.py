@@ -14,9 +14,9 @@ def fname_rename(x):
         # match and rename Directories first
         zz = zz.replace(" ", ".")
         if re.match(r"^\/(.+)([\/])$", y):
-            if "'" in zz:
-                zz = zz.translate(str.maketrans({"'": None}))
-                zr = "1"
+            # if "'" in zz:
+            #     zz = zz.translate(str.maketrans({"'": None}))
+            #     zr = "1"
             for rl in renlist:
                 rl1 = rl.rstrip()
                 if rl1 in zz:
@@ -27,9 +27,9 @@ def fname_rename(x):
                 continue
         if not re.match(r".+\.(?:mp4|mkv|avi|m4v|mov|mpg)$", y):
             continue
-        if "'" in zz:
-            zz = zz.translate(str.maketrans({"'": None}))
-            zr = "1"
+        # if "'" in zz:
+        #     zz = zz.translate(str.maketrans({"'": None}))
+        #     zr = "1"
         for rl in renlist:
             rl1 = rl.rstrip()
             if rl1 in zz:
