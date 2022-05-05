@@ -1,8 +1,9 @@
+# import sys
 from rename.fname_rename_l import fname_rename
 from pymv.get_info import mkv_get_info
 from pymv.get_info import mp4_get_info
+from pymv.get_info import avi_get_info
 import os
-import sys
 import glob
 import subprocess
 import send2trash
@@ -20,7 +21,6 @@ from pymediainfo import MediaInfo
 # #### create better handling if there are multiple subtitle tracks
 # ### Create better handling if there are multiple video tracks
 # ## create better handling if there are multiple audio tracks
-# # Maybe check chapters for info tracks, not sure what i meant now
 # # maybe create settings file for global Vars
 # # find a way to check that mp4/mkv is really that type container
 # #     not just a renamed file extension
@@ -104,7 +104,7 @@ master = {"mkv": {}, "mp4": {}, "avi": {}, "dst": {}}
 #
 re_se = re.compile(r"(.+)\.((s|S)(\d{1,2})(e|E)(\d{1,2}))")
 re_ext = re.compile(r".+\.(?:mp4|mkv|avi|m4v)$")
-re_del = re.compile(r"\.(?:nfo|txt|rtf|jpg|bmp|url|htm|html)")
+re_del = re.compile(r".+\.(?:nfo|txt|rtf|jpg|bmp|url|htm|html|NFO)$")
 re_yr = re.compile(r"((.+)\.(\d{4}$))")
 re_yr2 = re.compile(r"(.+)( \(\d{4}\)$)")
 re_yr3 = re.compile(r"(.+)(\(\d{4}\)$)")
@@ -113,15 +113,24 @@ re_yr3 = re.compile(r"(.+)(\(\d{4}\)$)")
 
 def check_season(src_file, dst_folder, src_name, dst_name):
     sss = re_se.match(src_name)
+    # print("sss: {}".format(sss))
+    # print("s4: {}".format(sss[4]))
     sea_list = glob.glob(dst_folder + "*" + slsh)
     dsm_chk = 0
     for dst_sea_lst in sea_list:
         dsl1 = dst_sea_lst.rstrip()
         dsl1 = dsl1.split(slsh)
+        # print("dsl1: {}".format(dsl1))
+        # print("len: {}".format(len(dsl1)))
+        # print("tst: {}".format(dsl1[5]))
         n1dsl = len(dsl1) - 2
         re_dst_sea = re.compile(r"(.*?)\w.(\d{1,2})")
+        # print(re_dst_sea)
         # split season so can match just number
         dsp1 = re_dst_sea.match(dsl1[n1dsl])
+        if dsp1 is None:
+            continue
+        # print("dsp1: {}".format(dsp1))
         if sss[4] == str(dsp1[2]):
             dsm_chk = 1
         else:
@@ -161,7 +170,7 @@ def check_season(src_file, dst_folder, src_name, dst_name):
     elif ext == ".m4v":
         hd_ver, codec = mp4_get_info(src_file)
     elif ext == ".avi":
-        hd_ver, codec = mp4_get_info(src_file)
+        hd_ver, codec = avi_get_info(src_file)
     else:
         print("Missing Container extension and process")
 
@@ -246,7 +255,6 @@ for folderlist in glob.glob(ip + "*/"):
         except OSError as e:
             print("Error: %s : %s" % (folderlist, e.strerror))
 
-# needed to strip escape characters and needless stuff in name
 # rename folders first
 fname_rename(glob.glob(ip + "*" + slsh))
 # rename files next
@@ -269,7 +277,6 @@ for path1 in Path(ip).rglob("*.mkv"):
         "Acodec": "0",
         "subti": 0,
         "Adelay": 0,
-        # "dstPath": "0", # maybe add back later or useless now?
         "name": "0",
         "sea": "0",
         "epi": "0",
@@ -397,7 +404,7 @@ for aa3, bb3 in master["mkv"].items():
             else:
                 logging.info("video extract failed on {}".format(aa3))
                 print("broken in video extract")
-                print("breaking on: ", aa3)
+                print("breaking on: {}".format(aa3))
                 break
             tr7d = mkv_e + ip + aa3 + trks + master["mkv"][aa3]["videotr"] + ":" + tr7f
             sbp_run(tr7d)
@@ -844,6 +851,7 @@ for path9 in Path(ip).rglob("*"):
                 elif re_yr2.match(k):
                     ww = re_yr2.match(k)
                     # print(k)
+                    # print("ww: {}".format(ww))
                     if ww[1].lower() == x9[1].lower():
                         master["dst"][path9] = check_season(path9, v, path9.name, k)
                         shutil.move(str(path9), master["dst"][path9])
@@ -858,6 +866,7 @@ for path9 in Path(ip).rglob("*"):
                         logging.info("moved to {}".format(master["dst"][path9]))
                         print("moved: ", str(master["dst"][path9]))
                 else:
+                    # print(k)
                     continue
 #
 # # #?# maybe keep same folder structure as DESTPATH?
@@ -887,9 +896,5 @@ for junkfile in Path(ip).rglob("*"):
         os.remove(junkfile)
     else:
         continue
-
-
 print(bcolors.OKBLUE + "junk files deleted" + bcolors.ENDC)
-
-
 print("successfully finished, excluding unreported errors")
