@@ -1,8 +1,5 @@
-# import sys
 from rename.fname_rename_l import fname_rename
-from pymv.get_info import mkv_get_info
-from pymv.get_info import mp4_get_info
-from pymv.get_info import avi_get_info
+from pymv.get_info import get_media_info
 import os
 import glob
 import subprocess
@@ -12,30 +9,59 @@ import re
 import shutil
 import xml.etree.ElementTree as ET
 import logging
-from os import path
+from os import name
 from pymediainfo import MediaInfo
 
-#
+# from pymv.get_info import mkv_get_info
+# from pymv.get_info import mp4_get_info
+# from pymv.get_info import avi_get_info
 
-# ##### use Multiprocessing to speed up extract and reconstitution?
-# #### create better handling if there are multiple subtitle tracks
-# ### Create better handling if there are multiple video tracks
-# ## create better handling if there are multiple audio tracks
-# # maybe create settings file for global Vars
-# # find a way to check that mp4/mkv is really that type container
-# #     not just a renamed file extension
-#
-# # other ideas - Search: #?#
+# Start Windows vs linux variables
+if name == "nt":
+    # Windows Settings
+    # don't change slsh line
+    slsh = "\\"
+    # Change if you didn't use default path
+    # Leave the at the end + " "
+    mkv_info = '"c:\\Program Files\\MKVToolNix\\mkvinfo.exe"' + " "
+    mkv_e = '"c:\\Program Files\\MKVToolNix\\mkvextract.exe"' + " "
+    mkvmrg = '"c:\\Program Files\\MKVToolNix\\mkvmerge.exe"' + " "
+    mkvpedit = '"c:\\Program Files\\MKVToolNix\\mkvpropedit.exe"' + " "
+    # update the path if needed but leave the space -hide_banner space '
+    ff_mpg = '"c:\\portables\\ffmpeg\\bin\\ffmpeg.exe" -hide_banner '
+    # update path if needed - no space on this one
+    ff_prob = "c:\\portables\\ffmpeg\\bin\\ffprobe.exe"
+else:
+    # Linux settings
+    # don't change the slsh line
+    slsh = "/"
+    # update the path if needed - Leave trailing space
+    mkv_info = "/usr/bin/mkvinfo "
+    mkv_e = "/usr/bin/mkvextract "
+    mkvmrg = "/usr/bin/mkvmerge "
+    mkvpedit = "/usr/bin/mkvpropedit "
+    # update if needed
+    ff_mpg = "/usr/bin/ffmpeg.exe -hide_banner "
+    ff_prob = "/usr/bin/ffprobe.exe"
+# end Windows vs linux
 
-# start Adjustable Vars
+# start path variables
 #
-# Destination folder to move and sort shows into (must end in slash)
+# Windows use \\
+# Linux use /
+#
+# destpath = "c:\\destp\\dst\\"
+# ip = "c:\\srcpath\\Downloads\\" # set in useramdsk 0 setting
+# tmp11 = "c:\\tmp\\cleanvid\\" # set in useramdsk 0 setting
+# subpath = "c:\\destp\\sbs\\"
+# logfile = "c:\\srcpath\\clean-move.log"
+#
 # destpath = "/media/Videos/Current-Renewed.Seasons/"
 destpath = "/media/Videos/Ended-Cancelled.Seasons/"
+subpath = "/media/Videos/subs/"
+logfile = "/home/david/Downloads/clean-move.log"
 #
-# added ramdisk ability to avoid needless writes to SSD drives
-# set to 0 for hdd/sata/nvme source drive and tmp folder with trash ability
-# set to 1 for ramdisk source and tmp folder with additional folder for trash
+# ramdisk setting not tested in Windows (keep to 0 for now)
 useramdsk = 1
 # source folder to check (must end in slash) and temp folder
 if useramdsk == 0:
@@ -45,22 +71,11 @@ elif useramdsk == 1:
     ip = "/tmp/ramdisk/clean/"
     tmp11 = "/tmp/ramdisk/tmp/"
     trash11 = "/tmp/ramdisk/trash/"
-    if not os.path.exists(trash11):
-        os.makedirs(trash11)
 else:
     print("incorrect ramdisk setting, quitting")
     quit()
-# Sub-title backup location
-subpath = "/media/Videos/subs/"
-logfile = "/home/david/Downloads/clean-move.log"
-#
-# mkvtoolnix binary locations
-mkv_info = "/usr/bin/mkvinfo "
-mkv_e = "/usr/bin/mkvextract "
-mkvmrg = "/usr/bin/mkvmerge "
-ff_mpg = "/usr/bin/ffmpeg -hide_banner "
-mkvpedit = "/usr/bin/mkvpropedit "
-# End Adjustable
+
+# end path variables
 
 
 class bcolors:
@@ -87,21 +102,16 @@ logging.basicConfig(
     level=logging.INFO,
 )
 
-# start global vars
-slsh = "/"
-mkmer = "-q --default-language 'eng' "
+# start global vars - Shouldn't need to change
+# mkmer = "-q --default-language 'eng' "
+mkmer = "-q "
 chpw = " chapters "
 trks = " tracks "
 ffp_var1 = " -v error -hide_banner -show_format"
 ffp_var2 = " -show_entries stream_tags:format_tags"
-ff_prob = "ffprobe" + ffp_var1 + ffp_var2
+ff_prob = ff_prob + ffp_var1 + ffp_var2
 master = dict()
-# create containers first for nested dict()
-# if further nesting is needed,
-# will need to declair it up front for easy append
-# or until I understand nested dict better
 master = {"mkv": {}, "mp4": {}, "avi": {}, "dst": {}}
-#
 re_se = re.compile(r"(.+)\.((s|S)(\d{1,2})(e|E)(\d{1,2}))")
 re_ext = re.compile(r".+\.(?:mp4|mkv|avi|m4v)$")
 re_del = re.compile(r".+\.(?:nfo|txt|rtf|jpg|bmp|url|htm|html|NFO)$")
@@ -162,23 +172,12 @@ def check_season(src_file, dst_folder, src_name, dst_name):
         if ex == numc:
             ec = ext1
     ext = "." + ea + eb + ec
-
-    if ext == ".mkv":
-        hd_ver, codec = mkv_get_info(src_file)
-    elif ext == ".mp4":
-        hd_ver, codec = mp4_get_info(src_file)
-    elif ext == ".m4v":
-        hd_ver, codec = mp4_get_info(src_file)
-    elif ext == ".avi":
-        hd_ver, codec = avi_get_info(src_file)
-    else:
-        print("Missing Container extension and process")
-
+    hd_ver, codec = get_media_info(src_file)
     mv_name = (
         dst_folder
         + "Season."
         + sss[4]
-        + "/"
+        + slsh
         + dst_name
         + ".S"
         + sss[4]
@@ -229,6 +228,17 @@ def sbp_run(x2x):
     subprocess_return2
 
 
+def remove_empty_folders(path_abs):
+    walk = list(os.walk(path_abs))
+    for (
+        path11,
+        _,
+        _,
+    ) in walk[::-1]:
+        if len(os.listdir(path11)) == 0:
+            os.rmdir(path11)
+
+
 # remove spaces from filenames
 for f in glob.glob(ip + "**"):
     r = f.replace(" ", "")
@@ -239,30 +249,25 @@ for f in glob.glob(ip + "**"):
 if not os.path.exists(tmp11):
     os.makedirs(tmp11)
 
-for folderlist in glob.glob(ip + "*/"):
-    if path.isdir(folderlist):
-        # print(folderlist)
-        deleteDir = folderlist
-        for filelist in glob.glob(folderlist + "*"):
-            # print(filelist)
-            # print(type(filelist))
-            filename = filelist.split("/")
-            filename = filename[(len(filename) - 1)]
-            # print(filename)
-            shutil.move(filelist, (ip + filename))
+# flatten files
+for root, _, files1 in os.walk(ip):
+    for file1 in files1:
+        path_file = os.path.join(root, file1)
         try:
-            os.rmdir(folderlist)
-        except OSError as e:
-            print("Error: %s : %s" % (folderlist, e.strerror))
+            shutil.move(path_file, ip)
+        except (shutil.SameFileError, shutil.Error):
+            continue
+    remove_empty_folders(ip)
 
 # rename folders first
-fname_rename(glob.glob(ip + "*" + slsh))
+# fname_rename(glob.glob(ip + "*" + slsh))
 # rename files next
 fname_rename(glob.glob(ip + "**", recursive=True))
 
 # ############################
 # ####### Begin MKV ##########
 # ############################
+print("Gathering info on files 1/5")
 for path1 in Path(ip).rglob("*.mkv"):
     a = str(path1.expanduser()).split(path1.name)
     if a[0] is None:
@@ -298,7 +303,8 @@ for path1 in Path(ip).rglob("*.mkv"):
 
 # start master
 # enter everything i'm looking for into Master from SRC folder
-for aa1, bb1 in master["mkv"].items():
+print("Gathering info on files 2/5")
+for aa1, _ in master["mkv"].items():
     Tstamp = os.stat(ip + aa1)
     master["mkv"][aa1]["st_atime"] = Tstamp.st_atime
     master["mkv"][aa1]["st_mtime"] = Tstamp.st_mtime
@@ -310,8 +316,10 @@ for aa1, bb1 in master["mkv"].items():
             master["mkv"][aa1]["change"] = 1
         elif "Title:" in chap1:
             master["mkv"][aa1]["change"] = 1
+
 # split complexity 1
-for ac1, bc1 in master["mkv"].items():
+print("Gathering info on files 3/5")
+for ac1, _ in master["mkv"].items():
     # video track and codec into master
     cmd42 = mkvmrg + "-i " + ip + ac1
     for vid2 in sbp_ret(cmd42):
@@ -325,7 +333,8 @@ for ac1, bc1 in master["mkv"].items():
             if int(master["mkv"][ac1]["videotr"]) > 0:
                 master["mkv"][ac1]["change"] = 1
 # split complexity 2
-for ac2, bc2 in master["mkv"].items():
+print("Gathering info on files 4/5")
+for ac2, _ in master["mkv"].items():
     cmd42 = mkvmrg + "-i " + ip + ac2
     # audio track into master (default track is 1 if master is 0)
     for aud2 in sbp_ret(cmd42):
@@ -341,7 +350,8 @@ for ac2, bc2 in master["mkv"].items():
                 master["mkv"][ac2]["Acodec"] = at[4]
                 master["mkv"][ac2]["audiotr"] = at[2]
 # check audio delay and set if needed
-for ac3, bc3 in master["mkv"].items():
+print("Gathering info on files 5/5")
+for ac3, _ in master["mkv"].items():
     for track in MediaInfo.parse(ip + ac3).tracks:
         if track.track_type == "Audio":
             if track.delay_relative_to_video is not None:
@@ -357,8 +367,8 @@ for ac3, bc3 in master["mkv"].items():
 # end master
 
 # begin remove tags
-# for ac5 in Path(ip).rglob("*"):
-for ac5, bc5 in master["mkv"].items():
+print("checking to remove tags")
+for ac5, _ in master["mkv"].items():
     fac5 = ip + ac5
     if check_comment(fac5) is not None:
         cmd43 = mkvpedit + str(fac5) + " --tags all: --add-track-statistics-tags"
@@ -370,7 +380,8 @@ for ac5, bc5 in master["mkv"].items():
 
 # start update
 # update name, season, episode in master
-for aa2, bb2 in master["mkv"].items():
+print("splitting up Name, Season, Episode version in hashtable")
+for aa2, _ in master["mkv"].items():
     rn_nm = re.match(
         r"(.+?)\.((s|S)(\d{1,2})(e|E)(\d{1,2}))", master["mkv"][aa2]["name"]
     )
@@ -382,7 +393,8 @@ for aa2, bb2 in master["mkv"].items():
 # end update
 
 # start video extract
-for aa3, bb3 in master["mkv"].items():
+print("Extracting Video tracks as needed")
+for aa3, _ in master["mkv"].items():
     if master["mkv"][aa3]["change"] == 1:
         tr7e = ".S" + master["mkv"][aa3]["sea"] + "E" + master["mkv"][aa3]["epi"]
         if master["mkv"][aa3]["videotr"] == "0":
@@ -466,7 +478,8 @@ for aa3, bb3 in master["mkv"].items():
 
 # #?# Maybe different handling if I look into split tracks later (not seen yet)
 # start set video track number if multiple tracks detected
-for aa9, bb9 in master["mkv"].items():
+print("updating video track info as needed")
+for aa9, _ in master["mkv"].items():
     if master["mkv"][aa9]["vtrnum"] != "a":
         cmd41 = mkv_info + ip + aa9
         for trnum1 in sbp_ret(cmd41):
@@ -484,7 +497,8 @@ for aa9, bb9 in master["mkv"].items():
 
 # #?# Might have to add handling of multiple audio tracks to strip languages
 # start audio extract
-for aa4, bb4 in master["mkv"].items():
+print("extracting Audio track as needed")
+for aa4, _ in master["mkv"].items():
     if master["mkv"][aa4]["change"] == 1:
         aa4a = master["mkv"][aa4]["audiotr"]
         aa4b = master["mkv"][aa4]["Acodec"]
@@ -506,7 +520,8 @@ for aa4, bb4 in master["mkv"].items():
 # end audio extract
 
 # start chapter extract
-for aa5, bb5 in master["mkv"].items():
+print("chapter extract as needed")
+for aa5, _ in master["mkv"].items():
     if master["mkv"][aa5]["change"] == 1:
         if master["mkv"][aa5]["chapters"] == 1:
             aa5a = master["mkv"][aa5]["name"]
@@ -528,7 +543,8 @@ for aa5, bb5 in master["mkv"].items():
 # end chapter extract
 
 # start subtitle extract
-for aa6, bb6 in master["mkv"].items():
+print("subtitle extract as needed")
+for aa6, _ in master["mkv"].items():
     if master["mkv"][aa6]["subti"] == 1:
         aa6a = master["mkv"][aa6]["name"]
         if master["mkv"][aa6]["audiotr"] == "0":
@@ -555,7 +571,8 @@ for aa6, bb6 in master["mkv"].items():
 # #?# maybe increase size for deletion?
 # #?# or find a better way to detect un-needed chapter exports
 # start check/delete useless chapters
-for aa7, bb7 in master["mkv"].items():
+print("removing junk chapters")
+for aa7, _ in master["mkv"].items():
     # print(aa7)
     if master["mkv"][aa7]["tchapters"] != "0":
         if Path(master["mkv"][aa7]["tchapters"]).stat().st_size < 975:
@@ -565,7 +582,8 @@ for aa7, bb7 in master["mkv"].items():
 # end check/delete useless chapters
 
 # Begin chapter word replace
-for ab1, ab2 in master["mkv"].items():
+print("Chapter word replace if needed")
+for ab1, _ in master["mkv"].items():
     if master["mkv"][aa7]["tchapters"] != "0":
         xmlTree = ET.parse(master["mkv"][aa7]["tchapters"])
         rootElement = xmlTree.getroot()
@@ -581,7 +599,8 @@ for ab1, ab2 in master["mkv"].items():
 # end chapter word replace
 
 # start rebuilding MKVs
-for aa8, bb8 in master["mkv"].items():
+print("rebuilding MKVs if tracks were extracted")
+for aa8, _ in master["mkv"].items():
     if master["mkv"][aa8]["change"] == 1:
         if master["mkv"][aa8]["tchapters"] != "0":
             aa8c = master["mkv"][aa8]["tchapters"]
@@ -638,19 +657,25 @@ for aa8, bb8 in master["mkv"].items():
             )
         aa8h = ip + aa8
         print(bcolors.OKBLUE + "Recreating: " + bcolors.ENDC, aa8)
+        # print(aa8e)
         sbp_run(aa8e)
         logging.info(aa8e)
         print(bcolors.OKBLUE + "deleting orig: " + bcolors.ENDC, aa8h)
+        path99 = os.path.join(ip, aa8)
+        # print("path: ", path99)
+        # quit()
         if useramdsk == 0:
-            send2trash.send2trash(aa8h)
+            send2trash.send2trash(path99)
         elif useramdsk == 1:
             shutil.move(aa8h, trash11 + aa8)
-        logging.info("sending to trash {}".format(aa8h))
+        logging.info("sending to trash {}".format(path99))
         print()
-        aa8aa = ip + aa8a + "-CHANGED-.mkv"
+        aa8aa = os.path.join(ip, (aa8a + "-CHANGED-.mkv"))
+        print(aa8aa)
         os.utime(
             aa8aa, (master["mkv"][aa8]["st_atime"], master["mkv"][aa8]["st_mtime"])
         )
+        # quit()
 # end rebuilding MKVs
 
 # start keep name tidy
@@ -660,7 +685,7 @@ fname_rename(glob.glob(ip + "**", recursive=True))
 # ################################
 # #### begin checking MP4 ########
 # ################################
-
+print("gather info on MP4 as needed")
 for path2 in Path(ip).rglob("*.mp4"):
     master["mp4"][path2.name] = {
         "m4parent": "0",
@@ -684,7 +709,7 @@ for path2 in Path(ip).rglob("*.m4v"):
     master["mp4"][path2.name]["m4parent"] = path2.parent
 
 # check if mp4 has a title
-for aa4, bb4 in master["mp4"].items():
+for aa4, _ in master["mp4"].items():
     Tstamp = os.stat(ip + aa4)
     master["mp4"][aa4]["m4st_atime"] = Tstamp.st_atime
     master["mp4"][aa4]["m4st_mtime"] = Tstamp.st_mtime
@@ -696,7 +721,8 @@ for aa4, bb4 in master["mp4"].items():
             master["mp4"][aa4]["m4title"] = "1"
 
 # do conversion of files in dictionary
-for rm1, rm2 in master["mp4"].items():
+print("converting files if needed")
+for rm1, _ in master["mp4"].items():
     if master["mp4"][rm1]["m4title"] == "1":
         rmof = master["mp4"][rm1]["m4parent"] / rm1
         rm1a = rm1.split(".mp4")
@@ -747,7 +773,7 @@ fname_rename(glob.glob(ip + "**", recursive=True))
 # #####################################
 # ### Begin AVI check/remove title
 # #####################################
-
+print("gathering info on AVI as needed")
 for fileAvi in Path(ip).rglob("*.avi"):
     fAname = fileAvi.name
     master["avi"][fAname] = {
@@ -771,6 +797,7 @@ for fileAvi in Path(ip).rglob("*.avi"):
     elif check_Aud_title(fileAvi) is not None:
         master["avi"][fAname]["avititle"] = 2
 
+print("converting AVI if needed")
 for rm3, rm4 in master["avi"].items():
     if rm4["avititle"] > 1:
         atmpname = (
@@ -816,8 +843,9 @@ dest_list = glob.glob(destpath + "*" + slsh)
 
 for dst_lst in dest_list:
     dl1 = dst_lst.split(slsh)
-    dest_shows[dl1[4]] = dst_lst
+    dest_shows[dl1[len(dl1) - 2]] = dst_lst
 
+# print("dest shows: ", dest_shows)
 for path9 in Path(ip).rglob("*"):
     # print("p9: ", path9)
     if str(path9).endswith(".part"):
@@ -825,6 +853,7 @@ for path9 in Path(ip).rglob("*"):
     if re_ext.match(path9.name):
         if re_se.match(path9.name):
             x9 = re.match(r"(.*?)\.(S|s)(\d{1,2})(E|e)(\d{1,2})", path9.name)
+            # print("x9: ", x9)
             for k, v in dest_shows.items():
                 # print("k", k)
                 # print(x9[1].lower())

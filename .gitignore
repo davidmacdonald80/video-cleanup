@@ -128,3 +128,4 @@ dmypy.json
 # Pyre type checker
 .pyre/
 t4.py
+t3.py

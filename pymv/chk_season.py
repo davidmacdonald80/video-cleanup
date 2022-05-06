@@ -4,7 +4,6 @@ import os
 from pymv.get_info import mkv_get_info
 
 
-# need_rn = 0
 re_se = re.compile(r"(.*?)((S)(\d{1,2}))((E)(\d{1,2}))")
 # re_yr = re.compile(r"((.+)\.(\d+$))")
 
