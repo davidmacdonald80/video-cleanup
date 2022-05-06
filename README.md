@@ -15,9 +15,13 @@ clean up name, and move to Shows to sorted Destination.
 Requirements: 
 
 mkvtoolnix  "sudo apt install mkvtoolnix" or https://mkvtoolnix.download/downloads.html
+
 ffmpeg    "sudo apt install ffmpeg"       or https://ffmpeg.org/download.html
 
+
 Send2Trash  "pip install send2trash"      or https://pypi.org/project/Send2Trash/
+
 pymediainfo "pip install pymediainfo"     or https://pypi.org/project/pymediainfo/
+
 psutil      "pip install psutil"          or https://pypi.org/project/psutil/
 
