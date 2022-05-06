@@ -46,13 +46,35 @@ else:
 # end Windows vs linux
 
 # start path variables
+#
 # Windows use \\
 # Linux use /
-destpath = "c:\\destp\\dst\\"
-ip = "c:\\srcpath\\Downloads\\"
-tmp11 = "c:\\tmp\\cleanvid\\"
-subpath = "c:\\destp\\sbs\\"
-logfile = "c:\\srcpath\\clean-move.log"
+#
+# destpath = "c:\\destp\\dst\\"
+# ip = "c:\\srcpath\\Downloads\\" # set in useramdsk 0 setting
+# tmp11 = "c:\\tmp\\cleanvid\\" # set in useramdsk 0 setting
+# subpath = "c:\\destp\\sbs\\"
+# logfile = "c:\\srcpath\\clean-move.log"
+#
+# destpath = "/media/Videos/Current-Renewed.Seasons/"
+destpath = "/media/Videos/Ended-Cancelled.Seasons/"
+subpath = "/media/Videos/subs/"
+logfile = "/home/david/Downloads/clean-move.log"
+#
+# ramdisk setting not tested in Windows (keep to 0 for now)
+useramdsk = 1
+# source folder to check (must end in slash) and temp folder
+if useramdsk == 0:
+    ip = "/home/david/Downloads/jdownloader/"
+    tmp11 = "/tmp/cleanvid/"
+elif useramdsk == 1:
+    ip = "/tmp/ramdisk/clean/"
+    tmp11 = "/tmp/ramdisk/tmp/"
+    trash11 = "/tmp/ramdisk/trash/"
+else:
+    print("incorrect ramdisk setting, quitting")
+    quit()
+
 # end path variables
 
 
@@ -642,10 +664,10 @@ for aa8, _ in master["mkv"].items():
         path99 = os.path.join(ip, aa8)
         # print("path: ", path99)
         # quit()
-        # if useramdsk == 0:
-        send2trash.send2trash(path99)
-        # elif useramdsk == 1:
-        #     shutil.move(aa8h, trash11 + aa8)
+        if useramdsk == 0:
+            send2trash.send2trash(path99)
+        elif useramdsk == 1:
+            shutil.move(aa8h, trash11 + aa8)
         logging.info("sending to trash {}".format(path99))
         print()
         aa8aa = os.path.join(ip, (aa8a + "-CHANGED-.mkv"))
@@ -732,12 +754,12 @@ for rm1, _ in master["mp4"].items():
         sbp_run(cmd33)
         print("edit audio track name on {}".format(rm1b))
         logging.info(cmd33)
-        # if useramdsk == 0:
-        send2trash.send2trash(rmof)
-        # elif useramdsk == 1:
-        #     log2 = str(rmof) + " " + str(trash11) + str(rm1)
-        #     logging.info(log2)
-        #     shutil.move(rmof, trash11 + rm1)
+        if useramdsk == 0:
+            send2trash.send2trash(rmof)
+        elif useramdsk == 1:
+            log2 = str(rmof) + " " + str(trash11) + str(rm1)
+            logging.info(log2)
+            shutil.move(rmof, trash11 + rm1)
         os.utime(
             ip + rm1b,
             (master["mp4"][aa4]["m4st_atime"], master["mp4"][aa4]["m4st_mtime"]),
@@ -795,12 +817,12 @@ for rm3, rm4 in master["avi"].items():
             + atmpname
         )
         sbp_run(afcmd)
-        # if useramdsk == 0:
-        send2trash.send2trash(ip + rm3)
-        # elif useramdsk == 1:
-        #     log2 = ip + rm3 + " " + str(trash11) + rm3
-        #     logging.info(log2)
-        #     shutil.move(ip + rm3, trash11 + rm3)
+        if useramdsk == 0:
+            send2trash.send2trash(ip + rm3)
+        elif useramdsk == 1:
+            log2 = ip + rm3 + " " + str(trash11) + rm3
+            logging.info(log2)
+            shutil.move(ip + rm3, trash11 + rm3)
         os.utime(
             atmpname,
             (master["avi"][rm3]["avist_atime"], master["avi"][rm3]["avist_mtime"]),
@@ -890,12 +912,12 @@ for path4 in Path(tmp11).rglob("*.srt"):
 for path5 in Path(tmp11).rglob("*"):
     if ".srt" in str(path5):
         continue
-    # if useramdsk == 0:
-    send2trash.send2trash(path5)
-    # elif useramdsk == 1:
-    #     log1 = "Move: " + str(path5) + " " + trash11 + str(path5.name)
-    #     logging.info(log1)
-    #     shutil.move(str(path5), trash11 + str(path5.name))
+    if useramdsk == 0:
+        send2trash.send2trash(path5)
+    elif useramdsk == 1:
+        log1 = "Move: " + str(path5) + " " + trash11 + str(path5.name)
+        logging.info(log1)
+        shutil.move(str(path5), trash11 + str(path5.name))
 print(bcolors.OKBLUE + "Temp folder cleared" + bcolors.ENDC)
 
 for junkfile in Path(ip).rglob("*"):
