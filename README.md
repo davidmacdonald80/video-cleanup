@@ -1,6 +1,6 @@
 # video-cleanup
 
-writing this on debian/ubuntu based Pop OS.  Not tested on any other flavor or Windows.
+Works in debian/ubuntu/Pop OS and Windows
 
 first python app and learning github at the same time.
 
@@ -14,11 +14,10 @@ clean up name, and move to Shows to sorted Destination.
 
 Requirements: 
 
-mkvtoolnix  "sudo apt install mkvtoolnix" or "https://mkvtoolnix.download/downloads.html"
+mkvtoolnix  "sudo apt install mkvtoolnix" or https://mkvtoolnix.download/downloads.html
+ffmpeg    "sudo apt install ffmpeg"       or https://ffmpeg.org/download.html
 
-Send2Trash  "pip install send2trash"      or "https://pypi.org/project/Send2Trash/"
+Send2Trash  "pip install send2trash"      or https://pypi.org/project/Send2Trash/
+pymediainfo "pip install pymediainfo"     or https://pypi.org/project/pymediainfo/
+psutil      "pip install psutil"          or https://pypi.org/project/psutil/
 
-ffmpeg    "sudo apt install ffmpeg"       or "https://ffmpeg.org/download.html"
-
-usage: 
-python3 clean-video.py
