@@ -41,9 +41,8 @@ else:
     mkvmrg = "/usr/bin/mkvmerge "
     mkvpedit = "/usr/bin/mkvpropedit "
     # update if needed
-    ff_mpg = "/usr/bin/ffmpeg.exe -hide_banner "
-    ff_prob = "/usr/bin/ffprobe.exe"
-# end Windows vs linux
+    ff_mpg = "/usr/bin/ffmpeg -hide_banner "
+    ff_prob = "/usr/bin/ffprobe"
 
 # start path variables
 #
@@ -76,6 +75,7 @@ else:
     quit()
 
 # end path variables
+# end Windows vs linux
 
 
 class bcolors:
@@ -148,7 +148,10 @@ def check_season(src_file, dst_folder, src_name, dst_name):
     if dsm_chk == 0:
         new_sea = dst_folder + "Season." + sss[4]
         os.mkdir(new_sea)
-        print("Directory '% s' created" % new_sea)
+        print(
+            bcolors.OKGREEN + "Directory created " + bcolors.ENDC + "{}".format(new_sea)
+        )
+        # (bcolors.OKBLUE + "deleting orig: " + bcolors.ENDC, aa8h)
 
     ex = 0
     ea = ""
@@ -236,7 +239,10 @@ def remove_empty_folders(path_abs):
         _,
     ) in walk[::-1]:
         if len(os.listdir(path11)) == 0:
-            os.rmdir(path11)
+            if path11 != ip:
+                os.rmdir(path11)
+            else:
+                continue
 
 
 # remove spaces from filenames
@@ -350,7 +356,7 @@ for ac2, _ in master["mkv"].items():
                 master["mkv"][ac2]["Acodec"] = at[4]
                 master["mkv"][ac2]["audiotr"] = at[2]
 # check audio delay and set if needed
-print("Gathering info on files 5/5")
+print("Gathering info on files 5/5\n")
 for ac3, _ in master["mkv"].items():
     for track in MediaInfo.parse(ip + ac3).tracks:
         if track.track_type == "Audio":
@@ -380,7 +386,7 @@ for ac5, _ in master["mkv"].items():
 
 # start update
 # update name, season, episode in master
-print("splitting up Name, Season, Episode version in hashtable")
+print("splitting up Name, Season, Episode version in hashtable\n")
 for aa2, _ in master["mkv"].items():
     rn_nm = re.match(
         r"(.+?)\.((s|S)(\d{1,2})(e|E)(\d{1,2}))", master["mkv"][aa2]["name"]
@@ -497,7 +503,7 @@ for aa9, _ in master["mkv"].items():
 
 # #?# Might have to add handling of multiple audio tracks to strip languages
 # start audio extract
-print("extracting Audio track as needed")
+print("extracting Audio track as needed\n")
 for aa4, _ in master["mkv"].items():
     if master["mkv"][aa4]["change"] == 1:
         aa4a = master["mkv"][aa4]["audiotr"]
@@ -582,7 +588,7 @@ for aa7, _ in master["mkv"].items():
 # end check/delete useless chapters
 
 # Begin chapter word replace
-print("Chapter word replace if needed")
+print("Chapter word replace if needed\n")
 for ab1, _ in master["mkv"].items():
     if master["mkv"][aa7]["tchapters"] != "0":
         xmlTree = ET.parse(master["mkv"][aa7]["tchapters"])
@@ -656,7 +662,7 @@ for aa8, _ in master["mkv"].items():
                 + ".mkv"
             )
         aa8h = ip + aa8
-        print(bcolors.OKBLUE + "Recreating: " + bcolors.ENDC, aa8)
+        print(bcolors.OKGREEN + "Recreating: " + bcolors.ENDC, aa8)
         # print(aa8e)
         sbp_run(aa8e)
         logging.info(aa8e)
@@ -671,7 +677,7 @@ for aa8, _ in master["mkv"].items():
         logging.info("sending to trash {}".format(path99))
         print()
         aa8aa = os.path.join(ip, (aa8a + "-CHANGED-.mkv"))
-        print(aa8aa)
+        # print(aa8aa)
         os.utime(
             aa8aa, (master["mkv"][aa8]["st_atime"], master["mkv"][aa8]["st_mtime"])
         )
@@ -836,7 +842,7 @@ fname_rename(glob.glob(ip + "**", recursive=True))
 # #########################################
 # Begin sorting process for move to NAS
 # #########################################
-
+print("Starting move to destination\n")
 dest_shows = dict()
 
 dest_list = glob.glob(destpath + "*" + slsh)
@@ -861,14 +867,20 @@ for path9 in Path(ip).rglob("*"):
                     master["dst"][path9] = check_season(path9, v, path9.name, k)
                     shutil.move(str(path9), str(master["dst"][path9]))
                     logging.info("moved to {}".format(str(master["dst"][path9])))
-                    print("Moved: ", str(master["dst"][path9]))
+                    print(
+                        bcolors.OKBLUE + "Moved: " + bcolors.ENDC,
+                        str(master["dst"][path9]),
+                    )
                 elif re_yr.match(x9[1]):
                     ww = re_yr.match(x9[1])
                     if k.lower() == ww[2].lower():
                         master["dst"][path9] = check_season(path9, v, path9.name, k)
                         shutil.move(str(path9), master["dst"][path9])
                         logging.info("moved to {}".format(str(master["dst"][path9])))
-                        print("Moved: ", str(master["dst"][path9]))
+                        print(
+                            bcolors.OKBLUE + "Moved: " + bcolors.ENDC,
+                            str(master["dst"][path9]),
+                        )
                 elif re_yr.match(k):
                     # print("test")
                     ww = re_yr.match(k)
@@ -876,7 +888,10 @@ for path9 in Path(ip).rglob("*"):
                         master["dst"][path9] = check_season(path9, v, path9.name, k)
                         shutil.move(str(path9), master["dst"][path9])
                         logging.info("moved to {}".format(str(master["dst"][path9])))
-                        print("Moved: ", str(master["dst"][path9]))
+                        print(
+                            bcolors.OKBLUE + "Moved: " + bcolors.ENDC,
+                            str(master["dst"][path9]),
+                        )
                 elif re_yr2.match(k):
                     ww = re_yr2.match(k)
                     # print(k)
@@ -885,7 +900,10 @@ for path9 in Path(ip).rglob("*"):
                         master["dst"][path9] = check_season(path9, v, path9.name, k)
                         shutil.move(str(path9), master["dst"][path9])
                         logging.info("moved to {}".format(master["dst"][path9]))
-                        print("moved: ", str(master["dst"][path9]))
+                        print(
+                            bcolors.OKBLUE + "moved: " + bcolors.ENDC,
+                            str(master["dst"][path9]),
+                        )
                 elif re_yr3.match(k):
                     ww = re_yr3.match(k)
                     # print(path9)
@@ -893,7 +911,10 @@ for path9 in Path(ip).rglob("*"):
                         master["dst"][path9] = check_season(path9, v, path9.name, k)
                         shutil.move(str(path9), str(master["dst"][path9]))
                         logging.info("moved to {}".format(master["dst"][path9]))
-                        print("moved: ", str(master["dst"][path9]))
+                        print(
+                            bcolors.OKBLUE + "moved: " + bcolors.ENDC,
+                            str(master["dst"][path9]),
+                        )
                 else:
                     # print(k)
                     continue
