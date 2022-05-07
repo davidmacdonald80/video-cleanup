@@ -31,10 +31,10 @@ def get_media_info(u):
     resolution = str(width) + "x" + str(height)
     if (height == "-1") or (width == "-1") or (codec == "-1"):
         print("something is broken in pymv.get_info.py-get_media_info")
-        print("broke reading filename: {u}")
-        print("height is: {height}")
-        print("width is: {width}")
-        print("codec is: {codec}")
+        print("broke reading filename: {}".format(u))
+        print("height is: {}".format(height))
+        print("width is: {}".format(width))
+        print("codec is: {}".format(codec))
         quit()
     return resolution, codec
 
