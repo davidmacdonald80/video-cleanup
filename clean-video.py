@@ -199,6 +199,10 @@ def check_comment(u):
     for Track in MediaInfo.parse(u).tracks:
         if not Track.track_type == "General":
             continue
+        if Track.comment is not None:
+            return Track.comment
+        if Track.description is not None:
+            return Track.description
         return Track.description
 
 
