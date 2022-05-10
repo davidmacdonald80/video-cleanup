@@ -9,7 +9,6 @@ import re
 import shutil
 import xml.etree.ElementTree as ET
 import logging
-from os import name
 from pymediainfo import MediaInfo
 
 # from pymv.get_info import mkv_get_info
@@ -17,7 +16,7 @@ from pymediainfo import MediaInfo
 # from pymv.get_info import avi_get_info
 
 # Start Windows vs linux variables
-if name == "nt":
+if os.name == "nt":
     # Windows Settings
     # don't change slsh line
     slsh = "\\"
@@ -55,8 +54,8 @@ else:
 # subpath = "c:\\destp\\sbs\\"
 # logfile = "c:\\srcpath\\clean-move.log"
 #
-# destpath = "/media/Videos/Current-Renewed.Seasons/"
-destpath = "/media/Videos/Ended-Cancelled.Seasons/"
+destpath = "/media/Videos/Current-Renewed.Seasons/"
+# destpath = "/media/Videos/Ended-Cancelled.Seasons/"
 subpath = "/media/Videos/subs/"
 logfile = "/home/david/Downloads/clean-move.log"
 #
@@ -700,6 +699,7 @@ for path2 in Path(ip).rglob("*.mp4"):
     master["mp4"][path2.name] = {
         "m4parent": "0",
         "m4title": "-1",
+        "m4comment": -1,
         "m4st_atime": "-1",
         "m4st_mtime": "-1",
         # "m4Vtrack": "-1",
@@ -711,6 +711,7 @@ for path2 in Path(ip).rglob("*.m4v"):
     master["mp4"][path2.name] = {
         "m4parent": "0",
         "m4title": "-1",
+        "m4comment": 0,
         "m4st_atime": "-1",
         "m4st_mtime": "-1",
         # "m4Vtrack": "-1",
@@ -718,63 +719,64 @@ for path2 in Path(ip).rglob("*.m4v"):
     }
     master["mp4"][path2.name]["m4parent"] = path2.parent
 
-# check if mp4 has a title
+# check if mp4 has a title/comment
 for aa4, _ in master["mp4"].items():
     Tstamp = os.stat(ip + aa4)
     master["mp4"][aa4]["m4st_atime"] = Tstamp.st_atime
     master["mp4"][aa4]["m4st_mtime"] = Tstamp.st_mtime
     cmd30 = ff_prob + " " + str(master["mp4"][aa4]["m4parent"] / aa4)
     for mtitle in sbp_ret(cmd30):
-        if "TAG:title=" not in mtitle:
-            continue
-        else:
+        if "TAG:title=" in mtitle:
             master["mp4"][aa4]["m4title"] = "1"
+        elif "TAG:comment=" in mtitle:
+            master["mp4"][aa4]["m4comment"] = 1
+        else:
+            continue
 
 # do conversion of files in dictionary
-print("converting files if needed")
+print("Converting MP4 to mkv")
 for rm1, _ in master["mp4"].items():
-    if master["mp4"][rm1]["m4title"] == "1":
-        rmof = master["mp4"][rm1]["m4parent"] / rm1
-        rm1a = rm1.split(".mp4")
-        rm1b = rm1a[0] + ".mkv"
+    if master["mp4"][rm1]["m4title"] == "1" or master["mp4"][rm1]["m4comment"] == 1:
+        fpath = master["mp4"][rm1]["m4parent"] / rm1
+        fpath_mkv = str(fpath.stem) + ".mkv"
         rmcmd = (
             mkvmrg
             + "-q --clusters-in-meta-seek --title '' -o "
             + ip
-            + rm1b
+            + fpath_mkv
             + " -S "
-            + str(rmof)
+            + str(fpath)
         )
         # print(rmcmd)
-        if os.path.exists(ip + rm1b):
+        if os.path.exists(ip + fpath_mkv):
             print(
                 bcolors.WARNING + "Exists, why? Overwriting: " + bcolors.ENDC,
-                rm1b,
+                fpath_mkv,
             )
-        print(bcolors.OKGREEN + "removing title from: " + bcolors.ENDC, rmof)
+        print(bcolors.OKGREEN + "removing title from: " + bcolors.ENDC, fpath)
         sbp_run(rmcmd)
         logging.info(rmcmd)
-        print(bcolors.OKBLUE + "deleting orig: " + bcolors.ENDC, rmof)
+        print(bcolors.OKBLUE + "deleting orig: " + bcolors.ENDC, fpath)
         # mkvpropedit Fname.S06E01.x264.mkv --edit track:v1 --set name="" track:a1 --set name=""
-        cmd32 = mkvpedit + ip + rm1b + " --edit track:v1 --set name=''"
+        cmd32 = mkvpedit + ip + fpath_mkv + " --edit track:v1 --set name=''"
         sbp_run(cmd32)
-        print("edit video track name on {}".format(rm1b))
+        print("edit video track name on {}".format(fpath_mkv))
         logging.info(cmd32)
-        cmd33 = mkvpedit + ip + rm1b + " --edit track:a1 --set name=''"
+        cmd33 = mkvpedit + ip + fpath_mkv + " --edit track:a1 --set name=''"
         sbp_run(cmd33)
-        print("edit audio track name on {}".format(rm1b))
+        print("edit audio track name on {}".format(fpath_mkv))
         logging.info(cmd33)
         if useramdsk == 0:
-            send2trash.send2trash(rmof)
+            send2trash.send2trash(fpath)
         elif useramdsk == 1:
-            log2 = str(rmof) + " " + str(trash11) + str(rm1)
+            log2 = str(fpath) + " " + str(trash11) + str(rm1)
             logging.info(log2)
-            shutil.move(rmof, trash11 + rm1)
+            shutil.move(fpath, trash11 + rm1)
         os.utime(
-            ip + rm1b,
+            ip + fpath_mkv,
             (master["mp4"][aa4]["m4st_atime"], master["mp4"][aa4]["m4st_mtime"]),
         )
-        logging.info("trashing {}".format(rmof))
+        logging.info("trashing {}".format(fpath))
         print()
 
 fname_rename(glob.glob(ip + "**", recursive=True))
