@@ -7,6 +7,8 @@ def get_media_info(u):
     width = "-1"
     codec = "-1"
     if re.match(r".+\.(?:mkv|m4v|mpg|mp4)$", str(u)):
+        # print("yes")
+        # quit()
         for track in MediaInfo.parse(u).tracks:
             if codec != "-1":
                 break

@@ -121,75 +121,43 @@ re_yr3 = re.compile(r"(.+)(\(\d{4}\)$)")
 
 
 def check_season(src_file, dst_folder, src_name, dst_name):
-    sss = re_se.match(src_name)
-    # print("sss: {}".format(sss))
-    # print("s4: {}".format(sss[4]))
-    sea_list = glob.glob(dst_folder + "*" + slsh)
-    dsm_chk = 0
-    for dst_sea_lst in sea_list:
-        dsl1 = dst_sea_lst.rstrip()
-        dsl1 = dsl1.split(slsh)
-        # print("dsl1: {}".format(dsl1))
-        # print("len: {}".format(len(dsl1)))
-        # print("tst: {}".format(dsl1[5]))
-        n1dsl = len(dsl1) - 2
+    Season_epi_num = re_se.match(src_name)
+    dest_folder_chk = 0
+    for dst_sea_lst in glob.glob(dst_folder + "*" + slsh):
+        path_split = dst_sea_lst.rstrip().split(slsh)
         re_dst_sea = re.compile(r"(.*?)\w.(\d{1,2})")
-        # print(re_dst_sea)
-        # split season so can match just number
-        dsp1 = re_dst_sea.match(dsl1[n1dsl])
-        if dsp1 is None:
+        dst_season_num = re_dst_sea.match(path_split[len(path_split) - 2])
+        if dst_season_num is None:
             continue
-        # print("dsp1: {}".format(dsp1))
-        if sss[4] == str(dsp1[2]):
-            dsm_chk = 1
+        if Season_epi_num[4] == str(dst_season_num[2]):
+            dest_folder_chk = 1
         else:
             continue
-    if dsm_chk == 0:
-        new_sea = dst_folder + "Season." + sss[4]
-        os.mkdir(new_sea)
+    if dest_folder_chk == 0:
+        new_season_folder = dst_folder + "Season." + Season_epi_num[4]
+        os.mkdir(new_season_folder)
         print(
-            bcolors.OKGREEN + "Directory created " + bcolors.ENDC + "{}".format(new_sea)
+            bcolors.OKGREEN
+            + "Directory created "
+            + bcolors.ENDC
+            + "{}".format(new_season_folder)
         )
-        # (bcolors.OKBLUE + "deleting orig: " + bcolors.ENDC, aa8h)
-
-    ex = 0
-    ea = ""
-    numa = 0
-    eb = ""
-    numb = 0
-    ec = ""
-    numc = 0
-    for ext1 in src_name:
-        ex = ex + 1
-    numa = ex - 2
-    numb = ex - 1
-    numc = ex
-    ex = 0
-    for ext1 in src_name:
-        ex = ex + 1
-        if ex == numa:
-            ea = ext1
-        if ex == numb:
-            eb = ext1
-        if ex == numc:
-            ec = ext1
-    ext = "." + ea + eb + ec
     hd_ver, codec = get_media_info(src_file)
     mv_name = (
         dst_folder
         + "Season."
-        + sss[4]
+        + Season_epi_num[4]
         + slsh
         + dst_name
         + ".S"
-        + sss[4]
+        + Season_epi_num[4]
         + "E"
-        + sss[6]
+        + Season_epi_num[6]
         + "."
         + codec
         + "."
         + hd_ver
-        + ext
+        + src_file.suffix
     )
     return mv_name
 
@@ -795,8 +763,7 @@ for fileAvi in Path(ip).rglob("*.avi"):
         "avist_atime": "-1",
         "avist_mtime": "-1",
         "aviExt": "1",
-        # "m4Vtrack": "-1",
-        # "m4Atrack": "-1",
+        "aviComment": 0,
     }
     master["avi"][fAname]["aviparent"] = fileAvi.parent
     master["avi"][fAname]["aviStem"] = fileAvi.stem
@@ -804,21 +771,20 @@ for fileAvi in Path(ip).rglob("*.avi"):
     master["avi"][fAname]["avist_atime"] = Tstamp.st_atime
     master["avi"][fAname]["avist_mtime"] = Tstamp.st_mtime
     master["avi"][fAname]["aviExt"] = fileAvi.suffix
-    if check_Gen_title(fileAvi) is not None:
-        master["avi"][fAname]["avititle"] = 2
-    elif check_Aud_title(fileAvi) is not None:
+    if (
+        check_Gen_title(fileAvi)
+        or check_Aud_title(fileAvi)
+        or check_comment(fileAvi) is not None
+    ):
         master["avi"][fAname]["avititle"] = 2
 
 print("converting AVI if needed")
 for rm3, rm4 in master["avi"].items():
+    atmpname = (
+        ip + master["avi"][rm3]["aviStem"] + "-CHANGED-" + master["avi"][rm3]["aviExt"]
+    )
     if rm4["avititle"] > 1:
-        atmpname = (
-            ip
-            + master["avi"][rm3]["aviStem"]
-            + "-CHANGED-"
-            + master["avi"][rm3]["aviExt"]
-        )
-        afcmd = (
+        avi_convert_cmd = (
             ff_mpg
             + "-fflags +genpts "
             + "-i "
@@ -828,19 +794,18 @@ for rm3, rm4 in master["avi"].items():
             + "-fflags +bitexact -flags:v +bitexact -flags:a +bitexact "
             + atmpname
         )
-        sbp_run(afcmd)
-        if useramdsk == 0:
-            send2trash.send2trash(ip + rm3)
-        elif useramdsk == 1:
-            log2 = ip + rm3 + " " + str(trash11) + rm3
-            logging.info(log2)
-            shutil.move(ip + rm3, trash11 + rm3)
-        os.utime(
-            atmpname,
-            (master["avi"][rm3]["avist_atime"], master["avi"][rm3]["avist_mtime"]),
-        )
-    else:
-        continue
+        sbp_run(avi_convert_cmd)
+    if useramdsk == 0:
+        send2trash.send2trash(ip + rm3)
+    elif useramdsk == 1:
+        log2 = ip + rm3 + " " + str(trash11) + rm3
+        logging.info(log2)
+        shutil.move(ip + rm3, trash11 + rm3)
+    os.utime(
+        atmpname,
+        (master["avi"][rm3]["avist_atime"], master["avi"][rm3]["avist_mtime"]),
+    )
+
 fname_rename(glob.glob(ip + "**", recursive=True))
 
 # end AVI check/remove title
@@ -848,7 +813,7 @@ fname_rename(glob.glob(ip + "**", recursive=True))
 # #########################################
 # Begin sorting process for move to NAS
 # #########################################
-print("Starting move to destination\n")
+print("\nStarting move to destination\n")
 dest_shows = dict()
 
 dest_list = glob.glob(destpath + "*" + slsh)
