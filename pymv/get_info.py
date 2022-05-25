@@ -3,20 +3,20 @@ import re
 
 
 def get_media_info(u):
-    height = "-1"
-    width = "-1"
-    codec = "-1"
+    height = -1
+    width = -1
+    codec = -1
     if re.match(r".+\.(?:mkv|m4v|mpg|mp4)$", str(u)):
         # print("yes")
         # quit()
         for track in MediaInfo.parse(u).tracks:
-            if codec != "-1":
+            if codec != -1:
                 break
             elif track.track_type == "Video":
                 codec = track.format
     elif re.match(r".+\.(?:avi)$", str(u)):
         for track in MediaInfo.parse(u).tracks:
-            if codec != "-1":
+            if codec != -1:
                 break
             elif track.track_type == "Video":
                 codec = track.codec_id
@@ -25,13 +25,13 @@ def get_media_info(u):
         print("pymv.getinfo - get_media_info")
         quit()
     for track in MediaInfo.parse(u).tracks:
-        if (height != "-1") and (width != "-1"):
+        if (height != -1) and (width != -1):
             break
         elif track.track_type == "Video":
             height = track.height
             width = track.width
     resolution = str(width) + "x" + str(height)
-    if (height == "-1") or (width == "-1") or (codec == "-1"):
+    if (height == -1) or (width == -1) or (codec == -1):
         print("something is broken in pymv.get_info.py-get_media_info")
         print("broke reading filename: {}".format(u))
         print("height is: {}".format(height))
