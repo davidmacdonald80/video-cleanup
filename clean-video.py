@@ -1,5 +1,3 @@
-from rename.fname_rename_l import fname_rename
-from pymv.get_info import get_media_info
 import os
 import glob
 import subprocess
@@ -10,6 +8,10 @@ import shutil
 import xml.etree.ElementTree as ET
 import logging
 from pymediainfo import MediaInfo
+import ctools
+
+# from pymv.get_info import get_media_info
+# from rename.fname_rename_l import fname_rename
 
 # Start Windows vs linux variables
 if os.name == "nt":
@@ -116,7 +118,7 @@ re_yr3 = re.compile(r"(.+)(\(\d{4}\)$)")
 # end global vars
 
 
-def check_season(src_file, dst_folder, src_name, dst_name):
+def check_move_name(src_file, dst_folder, src_name, dst_name):
     """
     See if source file has a matching show in dest_path
     and then format the move name accordingly to return it
@@ -142,7 +144,7 @@ def check_season(src_file, dst_folder, src_name, dst_name):
             + bcolors.ENDC
             + "{}".format(new_season_folder)
         )
-    resolution, codec = get_media_info(src_file)
+    resolution, codec = ctools.clean.get_media_info(src_file)
     mv_name = (
         dst_folder
         + "Season."
@@ -243,7 +245,7 @@ remove_space(glob.glob(ip + "**"))
 flatten_files(os.walk(ip))
 if not os.path.exists(tmp11):
     os.makedirs(tmp11)
-fname_rename(glob.glob(ip + "**", recursive=True))
+ctools.clean.fname_rename(glob.glob(ip + "**", recursive=True))
 
 
 # ############################
@@ -729,7 +731,7 @@ for mkv_name14, _ in master["mkv"].items():
 # end rebuilding MKVs
 
 # start keep name tidy
-fname_rename(glob.glob(ip + "**", recursive=True))
+ctools.clean.fname_rename(glob.glob(ip + "**", recursive=True))
 # end keep name tidy
 
 # ################################
@@ -826,7 +828,7 @@ for mp4_name2, _ in master["mp4"].items():
         logging.info("trashing {}".format(fpath))
         print()
 
-fname_rename(glob.glob(ip + "**", recursive=True))
+ctools.clean.fname_rename(glob.glob(ip + "**", recursive=True))
 # End MP4
 
 # #####################################
@@ -891,7 +893,7 @@ for avi_name, avi_values in master["avi"].items():
         ),
     )
 
-fname_rename(glob.glob(ip + "**", recursive=True))
+ctools.clean.fname_rename(glob.glob(ip + "**", recursive=True))
 
 # end AVI check/remove title
 
@@ -920,7 +922,7 @@ for path9 in Path(ip).rglob("*"):
                 # print("k", k)
                 # print(x9[1].lower())
                 if k.lower() == x9[1].lower():
-                    master["dst"][path9] = check_season(path9, v, path9.name, k)
+                    master["dst"][path9] = check_move_name(path9, v, path9.name, k)
                     shutil.move(str(path9), str(master["dst"][path9]))
                     logging.info("moved to {}".format(str(master["dst"][path9])))
                     print(
@@ -930,7 +932,7 @@ for path9 in Path(ip).rglob("*"):
                 elif re_yr.match(x9[1]):
                     ww = re_yr.match(x9[1])
                     if k.lower() == ww[2].lower():
-                        master["dst"][path9] = check_season(path9, v, path9.name, k)
+                        master["dst"][path9] = check_move_name(path9, v, path9.name, k)
                         shutil.move(str(path9), master["dst"][path9])
                         logging.info("moved to {}".format(str(master["dst"][path9])))
                         print(
@@ -941,7 +943,7 @@ for path9 in Path(ip).rglob("*"):
                     # print("test")
                     ww = re_yr.match(k)
                     if x9[1].lower() == ww[2].lower():
-                        master["dst"][path9] = check_season(path9, v, path9.name, k)
+                        master["dst"][path9] = check_move_name(path9, v, path9.name, k)
                         shutil.move(str(path9), master["dst"][path9])
                         logging.info("moved to {}".format(str(master["dst"][path9])))
                         print(
@@ -953,7 +955,7 @@ for path9 in Path(ip).rglob("*"):
                     # print(k)
                     # print("ww: {}".format(ww))
                     if ww[1].lower() == x9[1].lower():
-                        master["dst"][path9] = check_season(path9, v, path9.name, k)
+                        master["dst"][path9] = check_move_name(path9, v, path9.name, k)
                         shutil.move(str(path9), master["dst"][path9])
                         logging.info("moved to {}".format(master["dst"][path9]))
                         print(
@@ -964,7 +966,7 @@ for path9 in Path(ip).rglob("*"):
                     ww = re_yr3.match(k)
                     # print(path9)
                     if ww[1].lower() == x9[1].lower():
-                        master["dst"][path9] = check_season(path9, v, path9.name, k)
+                        master["dst"][path9] = check_move_name(path9, v, path9.name, k)
                         shutil.move(str(path9), str(master["dst"][path9]))
                         logging.info("moved to {}".format(master["dst"][path9]))
                         print(
