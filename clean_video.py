@@ -1,6 +1,5 @@
 import os
 import glob
-import subprocess
 import send2trash
 from pathlib import Path
 import re
@@ -10,86 +9,62 @@ import logging
 from pymediainfo import MediaInfo
 import ctools
 
-# from pymv.get_info import get_media_info
-# from rename.fname_rename_l import fname_rename
 
 # Start Windows vs linux variables
 if os.name == "nt":
     # Windows Settings
-    # don't change slsh line
-    slsh = "\\"
-    # Change if you didn't use default path
-    # Leave the at the end + " "
-    mkv_info = '"c:\\Program Files\\MKVToolNix\\mkvinfo.exe"'
-    mkv_e = '"c:\\Program Files\\MKVToolNix\\mkvextract.exe"'
-    mkvmrg = '"c:\\Program Files\\MKVToolNix\\mkvmerge.exe"'
-    mkvpedit = '"c:\\Program Files\\MKVToolNix\\mkvpropedit.exe"'
-    # update the path if needed but leave the space -hide_banner space '
-    ff_mpg = '"c:\\portables\\ffmpeg\\bin\\ffmpeg.exe" -hide_banner'
-    # update path if needed - no space on this one
-    ff_prob = "c:\\portables\\ffmpeg\\bin\\ffprobe.exe"
+    slsh = ctools.cvars.win_slsh
+    mkv_info = ctools.cvars.win_mkv_info
+    mkv_e = ctools.cvars.win_mkv_e
+    mkvmrg = ctools.cvars.win_mkvmrg
+    mkvpedit = ctools.cvars.win_mkvpedit
+    ff_mpg = ctools.cvars.win_ff_mpg
+    ff_prob = ctools.cvars.win_ff_prob
+    destpath = ctools.cvars.win_destpath
+    ip = ctools.cvars.win_ip
+    tmp11 = ctools.cvars.win_tmp11
+    subpath = ctools.cvars.win_subpath
+    logfile = ctools.cvars.win_logfile
 else:
     # Linux settings
-    # don't change the slsh line
-    slsh = "/"
-    # update the path if needed - Leave trailing space
-    mkv_info = "/usr/bin/mkvinfo"
-    mkv_e = "/usr/bin/mkvextract"
-    mkvmrg = "/usr/bin/mkvmerge"
-    mkvpedit = "/usr/bin/mkvpropedit"
-    # update if needed
-    ff_mpg = "/usr/bin/ffmpeg -hide_banner"
-    ff_prob = "/usr/bin/ffprobe"
-
-# start path variables
-#
-# Windows use \\
-# Linux use /
-#
-# destpath = "c:\\destp\\dst\\"
-# ip = "c:\\srcpath\\Downloads\\" # set in useramdsk 0 setting
-# tmp11 = "c:\\tmp\\cleanvid\\" # set in useramdsk 0 setting
-# subpath = "c:\\destp\\sbs\\"
-# logfile = "c:\\srcpath\\clean-move.log"
-#
-destpath = "/media/Videos/Current-Renewed.Seasons/"
-# destpath = "/media/Videos/Ended-Cancelled.Seasons/"
-subpath = "/media/Videos/subs/"
-logfile = "/home/david/Downloads/clean-move.log"
-#
-# ramdisk setting not tested in Windows (keep to 0 for now)
-useramdsk = 0
-# source folder to check (must end in slash) and temp folder
-if useramdsk == 0:
-    ip = "/home/david/Downloads/jdownloader/"
-    tmp11 = "/tmp/cleanvid/"
-elif useramdsk == 1:
-    ip = "/tmp/ramdisk/clean/"
-    tmp11 = "/tmp/ramdisk/tmp/"
-    trash11 = "/tmp/ramdisk/trash/"
-else:
-    print("incorrect ramdisk setting, quitting")
-    quit()
-
-# end path variables
-# end Windows vs linux
+    slsh = ctools.cvars.nix_slsh
+    mkv_info = ctools.cvars.nix_mkv_info
+    mkv_e = ctools.cvars.nix_mkv_e
+    mkvmrg = ctools.cvars.nix_mkvmrg
+    mkvpedit = ctools.cvars.nix_mkvpedit
+    ff_mpg = ctools.cvars.nix_ff_mpg
+    ff_prob = ctools.cvars.nix_ff_prob
+    destpath = ctools.cvars.nix_destpath_current
+    # destpath = ctools.cvars.nix_destpath_ended
+    subpath = ctools.cvars.nix_subpath
+    logfile = ctools.cvars.nix_logfile
+    # ramdisk setting not tested in Windows (keep to 0 for now)
+    useramdsk = 0
+    if useramdsk == 0:
+        ip = ctools.cvars.nix_ip
+        tmp11 = ctools.cvars.nix_tmp11
+    elif useramdsk == 1:
+        ip = ctools.cvars.nix_ramdisk_ip
+        tmp11 = ctools.cvars.nix_ramdisk_tmp11
+        trash11 = ctools.cvars.nix_ramdisk_trash11
 
 
-class bcolors:
-    HEADER = "\033[95m"
-    OKBLUE = "\033[94m"
-    OKGREEN = "\033[92m"
-    WARNING = "\033[93m"
-    FAIL = "\033[91m"
-    ENDC = "\033[0m"
-
-    def disable(self):
-        self.HEADER = ""
-        self.OKBLUE = ""
-        self.OKGREEN = ""
-        self.WARNING = ""
-        self.FAIL = ""
-        self.ENDC = ""
+# start global vars - Shouldn't need to change
+mkmer = ctools.cvars.mkmer
+chpw = ctools.cvars.chpw
+trks = ctools.cvars.trks
+ffp_var1 = ctools.cvars.ffp_var1
+ffp_var2 = ctools.cvars.ffp_var2
+ff_prob = ff_prob + ffp_var1 + ffp_var2
+master = ctools.cvars.master
+re_se = ctools.cvars.re_se
+re_ext = ctools.cvars.re_ext
+re_del = ctools.cvars.re_del
+re_yr = ctools.cvars.re_yr
+re_yr2 = ctools.cvars.re_yr2
+re_yr3 = ctools.cvars.re_yr3
+bcolors = ctools.bcolors()
+# end global vars
 
 
 logging.basicConfig(
@@ -98,24 +73,6 @@ logging.basicConfig(
     datefmt="%y-%b-%d %H:%M:%S",
     level=logging.INFO,
 )
-
-# start global vars - Shouldn't need to change
-# mkmer = "-q --default-language 'eng' "
-mkmer = "-q "
-chpw = " chapters "
-trks = " tracks "
-ffp_var1 = " -v error -hide_banner -show_format"
-ffp_var2 = " -show_entries stream_tags:format_tags"
-ff_prob = ff_prob + ffp_var1 + ffp_var2
-master = dict()
-master = {"mkv": {}, "mp4": {}, "avi": {}, "dst": {}}
-re_se = re.compile(r"(.+)\.((s|S)(\d{1,2})(e|E)(\d{1,2}))")
-re_ext = re.compile(r".+\.(?:mp4|mkv|avi|m4v)$")
-re_del = re.compile(r".+\.(?:nfo|txt|rtf|jpg|bmp|url|htm|html|NFO)$")
-re_yr = re.compile(r"((.+)\.(\d{4}$))")
-re_yr2 = re.compile(r"(.+)( \(\d{4}\)$)")
-re_yr3 = re.compile(r"(.+)(\(\d{4}\)$)")
-# end global vars
 
 
 def check_move_name(src_file, dst_folder, src_name, dst_name):
@@ -164,51 +121,6 @@ def check_move_name(src_file, dst_folder, src_name, dst_name):
     return mv_name
 
 
-def check_comment(u):
-    """return General track comment or description"""
-    for Track in MediaInfo.parse(u).tracks:
-        if not Track.track_type == "General":
-            continue
-        if Track.comment is not None:
-            return Track.comment
-        if Track.description is not None:
-            return Track.description
-        return Track.description
-
-
-def check_Gen_title(u):
-    """return General track title"""
-    for Track in MediaInfo.parse(u).tracks:
-        if not Track.track_type == "General":
-            continue
-        else:
-            return Track.title
-
-
-def check_Aud_title(u):
-    """return Audio track title"""
-    for Track in MediaInfo.parse(u).tracks:
-        if not Track.track_type == "Audio":
-            continue
-        else:
-            return Track.title
-
-
-def sbp_ret(x1x):
-    """Run command and return output"""
-    subprocess1 = subprocess.Popen(x1x, shell=True, stdout=subprocess.PIPE)
-    subprocess_return1 = subprocess1.stdout.read()
-    ret1 = subprocess_return1.decode("utf-8").split("\n")
-    return ret1
-
-
-def sbp_run(x2x):
-    """run command doesn't return output"""
-    subprocess2 = subprocess.Popen(x2x, shell=True, stdout=subprocess.PIPE)
-    subprocess_return2 = subprocess2.stdout.read()
-    subprocess_return2
-
-
 def remove_empty_folders(path_abs):
     walk = list(os.walk(path_abs))
     for (
@@ -223,13 +135,6 @@ def remove_empty_folders(path_abs):
                 continue
 
 
-def remove_space(file_list):
-    for f in file_list:
-        r = f.replace(" ", "")
-        if r != f:
-            os.rename(f, r)
-
-
 def flatten_files(os_walk_path):
     for root, _, files1 in os_walk_path:
         for file1 in files1:
@@ -241,7 +146,7 @@ def flatten_files(os_walk_path):
         remove_empty_folders(ip)
 
 
-remove_space(glob.glob(ip + "**"))
+ctools.clean.remove_space(glob.glob(ip + "**"))
 flatten_files(os.walk(ip))
 if not os.path.exists(tmp11):
     os.makedirs(tmp11)
@@ -294,7 +199,7 @@ for mkv_name1, _ in master["mkv"].items():
     master["mkv"][mkv_name1]["st_atime"] = Tstamp.st_atime
     master["mkv"][mkv_name1]["st_mtime"] = Tstamp.st_mtime
     cmd41 = mkv_info + " " + ip + mkv_name1
-    for chap1 in sbp_ret(cmd41):
+    for chap1 in ctools.clean.sbp_ret(cmd41):
         if "Chapters" in chap1:
             master["mkv"][mkv_name1]["chapters"] = 1
         elif "Name:" in chap1:
@@ -307,7 +212,7 @@ print("Gathering info on files 3/5")
 for mkv_name2, _ in master["mkv"].items():
     # video track and codec into master
     cmd42 = mkvmrg + " -i " + ip + mkv_name2
-    for vid2 in sbp_ret(cmd42):
+    for vid2 in ctools.clean.sbp_ret(cmd42):
         if "Track ID" in vid2:
             # double check RegEx
             vt = re.match(r"(Track ID )(\d): (video )\((.{3,4})\/.+", vid2)
@@ -322,7 +227,7 @@ print("Gathering info on files 4/5")
 for mkv_name3, _ in master["mkv"].items():
     cmd42 = mkvmrg + " -i " + ip + mkv_name3
     # audio track into master (default track is 1 if master is 0)
-    for aud2 in sbp_ret(cmd42):
+    for aud2 in ctools.clean.sbp_ret(cmd42):
         if "subtitles" in aud2:
             master["mkv"][mkv_name3]["subti"] = 1
             master["mkv"][mkv_name3]["change"] = 1
@@ -357,7 +262,7 @@ for mkv_name4, _ in master["mkv"].items():
 print("checking to remove tags")
 for mkv_name5, _ in master["mkv"].items():
     fp_mkv_name5 = ip + mkv_name5
-    if check_comment(fp_mkv_name5) is not None:
+    if ctools.clean.check_comment(fp_mkv_name5) is not None:
         cmd43 = (
             mkvpedit
             + " "
@@ -366,7 +271,7 @@ for mkv_name5, _ in master["mkv"].items():
         )
         logging.info(cmd43)
         print("remove tags in {}".format(mkv_name5))
-        sbp_run(cmd43)
+        ctools.clean.sbp_run(cmd43)
         os.utime(
             fp_mkv_name5,
             (
@@ -431,7 +336,7 @@ for mkv_name7, _ in master["mkv"].items():
                 + ":"
                 + name_minus_ext
             )
-            sbp_run(mkv_v_extract_cmd)
+            ctools.clean.sbp_run(mkv_v_extract_cmd)
             logging.info(mkv_v_extract_cmd)
             master["mkv"][mkv_name7]["tvideo"] = name_minus_ext
         elif int(master["mkv"][mkv_name7]["videotr"]) > 0:
@@ -470,7 +375,7 @@ for mkv_name7, _ in master["mkv"].items():
                     + ":"
                     + name_minus_ext
                 )
-                sbp_run(mkv_v_extract_cmd)
+                ctools.clean.sbp_run(mkv_v_extract_cmd)
                 logging.info(mkv_v_extract_cmd)
                 if master["mkv"][mkv_name7]["audiotr"] == "0":
                     master["mkv"][mkv_name7]["tvideo"] = name_minus_ext
@@ -501,7 +406,7 @@ print("updating video track info as needed")
 for mkv_name8, _ in master["mkv"].items():
     if master["mkv"][mkv_name8]["vtrnum"] != "a":
         cmd41 = mkv_info + " " + ip + mkv_name8
-        for c41_line in sbp_ret(cmd41):
+        for c41_line in ctools.clean.sbp_ret(cmd41):
             Vtrack_num = str(int(master["mkv"][mkv_name8]["vtrnum"]) + 2)
             Vtrack_num = "Track number: " + Vtrack_num
             if Vtrack_num in c41_line:
@@ -538,7 +443,7 @@ for mkv_name9, _ in master["mkv"].items():
             print("breaking on: ", mkv_name9)
             break
         aud_extract_cmd = mkv_e + " " + ip + mkv_name9 + trks + aud_tr9 + ":" + aa4e
-        sbp_run(aud_extract_cmd)
+        ctools.clean.sbp_run(aud_extract_cmd)
         logging.info(aud_extract_cmd)
         master["mkv"][mkv_name9]["taudio"] = aa4e
 # end audio extract
@@ -563,7 +468,7 @@ for mkv_name10, _ in master["mkv"].items():
                 print("breaking on: ", mkv_name10)
                 break
             chptr_extrct_cmd10 = mkv_e + " " + ip + mkv_name10 + chpw + aa5c
-            sbp_run(chptr_extrct_cmd10)
+            ctools.clean.sbp_run(chptr_extrct_cmd10)
             logging.info(chptr_extrct_cmd10)
             master["mkv"][mkv_name10]["tchapters"] = aa5c
 # end chapter extract
@@ -598,7 +503,7 @@ for mkv_name11, _ in master["mkv"].items():
             + ":"
             + extrcted_sub_name11
         )
-        sbp_run(extrcted_sub_cmd11)
+        ctools.clean.sbp_run(extrcted_sub_cmd11)
         logging.info(extrcted_sub_cmd11)
         master["mkv"][mkv_name11]["tsubs"] = extrcted_sub_name11
 # end subtitle extract
@@ -706,7 +611,7 @@ for mkv_name14, _ in master["mkv"].items():
         file_to_delete14 = ip + mkv_name14
         print(bcolors.OKGREEN + "Recreating: " + bcolors.ENDC, mkv_name14)
         # print(rebuild_cmd14)
-        sbp_run(rebuild_cmd14)
+        ctools.clean.sbp_run(rebuild_cmd14)
         logging.info(rebuild_cmd14)
         print(bcolors.OKBLUE + "deleting orig: " + bcolors.ENDC, file_to_delete14)
         path14 = os.path.join(ip, mkv_name14)
@@ -768,7 +673,7 @@ for mp4_name1, _ in master["mp4"].items():
     master["mp4"][mp4_name1]["m4st_atime"] = Tstamp.st_atime
     master["mp4"][mp4_name1]["m4st_mtime"] = Tstamp.st_mtime
     cmd30 = ff_prob + " " + str(master["mp4"][mp4_name1]["m4parent"] / mp4_name1)
-    for mtitle in sbp_ret(cmd30):
+    for mtitle in ctools.clean.sbp_ret(cmd30):
         if "TAG:title=" in mtitle:
             master["mp4"][mp4_name1]["m4title"] = "1"
         elif "TAG:comment=" in mtitle:
@@ -800,16 +705,16 @@ for mp4_name2, _ in master["mp4"].items():
                 fpath_mkv,
             )
         print(bcolors.OKGREEN + "removing title from: " + bcolors.ENDC, fpath)
-        sbp_run(rmcmd)
+        ctools.clean.sbp_run(rmcmd)
         logging.info(rmcmd)
         print(bcolors.OKBLUE + "deleting orig: " + bcolors.ENDC, fpath)
 
         cmd32 = mkvpedit + " " + ip + fpath_mkv + " --edit track:v1 --set name=''"
-        sbp_run(cmd32)
+        ctools.clean.sbp_run(cmd32)
         print("edit video track name on {}".format(fpath_mkv))
         logging.info(cmd32)
         cmd33 = mkvpedit + " " + ip + fpath_mkv + " --edit track:a1 --set name=''"
-        sbp_run(cmd33)
+        ctools.clean.sbp_run(cmd33)
         print("edit audio track name on {}".format(fpath_mkv))
         logging.info(cmd33)
         if useramdsk == 0:
@@ -853,9 +758,9 @@ for fileAvi in Path(ip).rglob("*.avi"):
     master["avi"][fAname]["avist_mtime"] = Tstamp.st_mtime
     master["avi"][fAname]["aviExt"] = fileAvi.suffix
     if (
-        check_Gen_title(fileAvi)
-        or check_Aud_title(fileAvi)
-        or check_comment(fileAvi) is not None
+        ctools.clean.check_Gen_title(fileAvi)
+        or ctools.clean.check_Aud_title(fileAvi)
+        or ctools.clean.check_comment(fileAvi) is not None
     ):
         master["avi"][fAname]["avititle"] = 2
 
@@ -878,7 +783,7 @@ for avi_name, avi_values in master["avi"].items():
             + "-fflags +bitexact -flags:v +bitexact -flags:a +bitexact "
             + atmpname
         )
-        sbp_run(avi_convert_cmd)
+        ctools.clean.sbp_run(avi_convert_cmd)
     if useramdsk == 0:
         send2trash.send2trash(ip + avi_name)
     elif useramdsk == 1:
