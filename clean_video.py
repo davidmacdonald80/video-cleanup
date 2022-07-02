@@ -10,59 +10,50 @@ from pymediainfo import MediaInfo
 import ctools
 
 
+ctc = ctools.cvars
+
 # Start Windows vs linux variables
 if os.name == "nt":
     # Windows Settings
-    slsh = ctools.cvars.win_slsh
-    mkv_info = ctools.cvars.win_mkv_info
-    mkv_e = ctools.cvars.win_mkv_e
-    mkvmrg = ctools.cvars.win_mkvmrg
-    mkvpedit = ctools.cvars.win_mkvpedit
-    ff_mpg = ctools.cvars.win_ff_mpg
-    ff_prob = ctools.cvars.win_ff_prob
-    destpath = ctools.cvars.win_destpath
-    ip = ctools.cvars.win_ip
-    tmp11 = ctools.cvars.win_tmp11
-    subpath = ctools.cvars.win_subpath
-    logfile = ctools.cvars.win_logfile
+    slsh = ctc.win_slsh
+    mkv_info = ctc.win_mkv_info
+    mkv_e = ctc.win_mkv_e
+    mkvmrg = ctc.win_mkvmrg
+    mkvpedit = ctc.win_mkvpedit
+    ff_mpg = ctc.win_ff_mpg
+    ff_prob = ctc.win_ff_prob
+    destpath = ctc.win_destpath
+    ip = ctc.win_ip
+    tmp11 = ctc.win_tmp11
+    subpath = ctc.win_subpath
+    logfile = ctc.win_logfile
 else:
     # Linux settings
-    slsh = ctools.cvars.nix_slsh
-    mkv_info = ctools.cvars.nix_mkv_info
-    mkv_e = ctools.cvars.nix_mkv_e
-    mkvmrg = ctools.cvars.nix_mkvmrg
-    mkvpedit = ctools.cvars.nix_mkvpedit
-    ff_mpg = ctools.cvars.nix_ff_mpg
-    ff_prob = ctools.cvars.nix_ff_prob
-    destpath = ctools.cvars.nix_destpath_current
-    # destpath = ctools.cvars.nix_destpath_ended
-    subpath = ctools.cvars.nix_subpath
-    logfile = ctools.cvars.nix_logfile
+    slsh = ctc.nix_slsh
+    mkv_info = ctc.nix_mkv_info
+    mkv_e = ctc.nix_mkv_e
+    mkvmrg = ctc.nix_mkvmrg
+    mkvpedit = ctc.nix_mkvpedit
+    ff_mpg = ctc.nix_ff_mpg
+    ff_prob = ctc.nix_ff_prob
+    destpath = ctc.nix_destpath_current
+    # destpath = ctc.nix_destpath_ended
+    subpath = ctc.nix_subpath
+    logfile = ctc.nix_logfile
     # ramdisk setting not tested in Windows (keep to 0 for now)
     useramdsk = 0
     if useramdsk == 0:
-        ip = ctools.cvars.nix_ip
-        tmp11 = ctools.cvars.nix_tmp11
+        ip = ctc.nix_ip
+        tmp11 = ctc.nix_tmp11
     elif useramdsk == 1:
-        ip = ctools.cvars.nix_ramdisk_ip
-        tmp11 = ctools.cvars.nix_ramdisk_tmp11
-        trash11 = ctools.cvars.nix_ramdisk_trash11
+        ip = ctc.nix_ramdisk_ip
+        tmp11 = ctc.nix_ramdisk_tmp11
+        trash11 = ctc.nix_ramdisk_trash11
 
 
 # start global vars - Shouldn't need to change
-mkmer = ctools.cvars.mkmer
-chpw = ctools.cvars.chpw
-trks = ctools.cvars.trks
-ffp_var1 = ctools.cvars.ffp_var1
-ffp_var2 = ctools.cvars.ffp_var2
-ff_prob = ff_prob + ffp_var1 + ffp_var2
-master = ctools.cvars.master
-re_se = ctools.cvars.re_se
-re_ext = ctools.cvars.re_ext
-re_del = ctools.cvars.re_del
-re_yr = ctools.cvars.re_yr
-re_yr2 = ctools.cvars.re_yr2
-re_yr3 = ctools.cvars.re_yr3
+ff_prob = ff_prob + ctc.ffp_var1 + ctc.ffp_var2
+master = ctc.master
 bcolors = ctools.bcolors()
 # end global vars
 
@@ -80,7 +71,7 @@ def check_move_name(src_file, dst_folder, src_name, dst_name):
     See if source file has a matching show in dest_path
     and then format the move name accordingly to return it
     """
-    Season_epi_num = re_se.match(src_name)
+    Season_epi_num = ctc.re_se.match(src_name)
     dest_folder_chk = 0
     for dst_sea_lst in glob.glob(dst_folder + "*" + slsh):
         path_split = dst_sea_lst.rstrip().split(slsh)
@@ -146,6 +137,7 @@ def flatten_files(os_walk_path):
         remove_empty_folders(ip)
 
 
+ctools.clean.remove_punc(glob.glob(ip + "**", recursive=True))
 ctools.clean.remove_space(glob.glob(ip + "**"))
 flatten_files(os.walk(ip))
 if not os.path.exists(tmp11):
@@ -331,7 +323,7 @@ for mkv_name7, _ in master["mkv"].items():
                 + " "
                 + ip
                 + mkv_name7
-                + trks
+                + ctc.trks
                 + master["mkv"][mkv_name7]["videotr"]
                 + ":"
                 + name_minus_ext
@@ -370,7 +362,7 @@ for mkv_name7, _ in master["mkv"].items():
                     + " "
                     + ip
                     + mkv_name7
-                    + trks
+                    + ctc.trks
                     + master["mkv"][mkv_name7]["videotr"]
                     + ":"
                     + name_minus_ext
@@ -442,7 +434,7 @@ for mkv_name9, _ in master["mkv"].items():
             print("something broken in audio extract")
             print("breaking on: ", mkv_name9)
             break
-        aud_extract_cmd = mkv_e + " " + ip + mkv_name9 + trks + aud_tr9 + ":" + aa4e
+        aud_extract_cmd = mkv_e + " " + ip + mkv_name9 + ctc.trks + aud_tr9 + ":" + aa4e
         ctools.clean.sbp_run(aud_extract_cmd)
         logging.info(aud_extract_cmd)
         master["mkv"][mkv_name9]["taudio"] = aa4e
@@ -467,7 +459,7 @@ for mkv_name10, _ in master["mkv"].items():
                 print("something broken in chapter extract")
                 print("breaking on: ", mkv_name10)
                 break
-            chptr_extrct_cmd10 = mkv_e + " " + ip + mkv_name10 + chpw + aa5c
+            chptr_extrct_cmd10 = mkv_e + " " + ip + mkv_name10 + ctc.chpw + aa5c
             ctools.clean.sbp_run(chptr_extrct_cmd10)
             logging.info(chptr_extrct_cmd10)
             master["mkv"][mkv_name10]["tchapters"] = aa5c
@@ -498,7 +490,7 @@ for mkv_name11, _ in master["mkv"].items():
             + " "
             + ip
             + mkv_name11
-            + trks
+            + ctc.trks
             + sub_trck_num11
             + ":"
             + extrcted_sub_name11
@@ -578,7 +570,7 @@ for mkv_name14, _ in master["mkv"].items():
             rebuild_cmd14 = (
                 mkvmrg
                 + " "
-                + mkmer
+                + ctc.mkmer
                 + partial_14d
                 + " "
                 + master["mkv"][mkv_name14]["tvideo"]
@@ -596,7 +588,7 @@ for mkv_name14, _ in master["mkv"].items():
             rebuild_cmd14 = (
                 mkvmrg
                 + " "
-                + mkmer
+                + ctc.mkmer
                 + partial_14d
                 + " "
                 + master["mkv"][mkv_name14]["tvideo"]
@@ -772,7 +764,7 @@ for avi_name, avi_values in master["avi"].items():
         + "-CHANGED-"
         + master["avi"][avi_name]["aviExt"]
     )
-    print(atmpname)
+    # print(atmpname)
     if avi_values["avititle"] > 1:
         avi_convert_cmd = (
             ff_mpg
@@ -819,8 +811,8 @@ for path9 in Path(ip).rglob("*"):
     # print("p9: ", path9)
     if str(path9).endswith(".part"):
         continue
-    if re_ext.match(path9.name):
-        if re_se.match(path9.name):
+    if ctc.re_ext.match(path9.name):
+        if ctc.re_se.match(path9.name):
             x9 = re.match(r"(.*?)\.(S|s)(\d{1,2})(E|e)(\d{1,2})", path9.name)
             # print("x9: ", x9)
             for k, v in dest_shows.items():
@@ -834,8 +826,8 @@ for path9 in Path(ip).rglob("*"):
                         bcolors.OKBLUE + "Moved: " + bcolors.ENDC,
                         str(master["dst"][path9]),
                     )
-                elif re_yr.match(x9[1]):
-                    ww = re_yr.match(x9[1])
+                elif ctc.re_yr.match(x9[1]):
+                    ww = ctc.re_yr.match(x9[1])
                     if k.lower() == ww[2].lower():
                         master["dst"][path9] = check_move_name(path9, v, path9.name, k)
                         shutil.move(str(path9), master["dst"][path9])
@@ -844,9 +836,9 @@ for path9 in Path(ip).rglob("*"):
                             bcolors.OKBLUE + "Moved: " + bcolors.ENDC,
                             str(master["dst"][path9]),
                         )
-                elif re_yr.match(k):
+                elif ctc.re_yr.match(k):
                     # print("test")
-                    ww = re_yr.match(k)
+                    ww = ctc.re_yr.match(k)
                     if x9[1].lower() == ww[2].lower():
                         master["dst"][path9] = check_move_name(path9, v, path9.name, k)
                         shutil.move(str(path9), master["dst"][path9])
@@ -855,8 +847,8 @@ for path9 in Path(ip).rglob("*"):
                             bcolors.OKBLUE + "Moved: " + bcolors.ENDC,
                             str(master["dst"][path9]),
                         )
-                elif re_yr2.match(k):
-                    ww = re_yr2.match(k)
+                elif ctc.re_yr2.match(k):
+                    ww = ctc.re_yr2.match(k)
                     # print(k)
                     # print("ww: {}".format(ww))
                     if ww[1].lower() == x9[1].lower():
@@ -867,8 +859,8 @@ for path9 in Path(ip).rglob("*"):
                             bcolors.OKBLUE + "moved: " + bcolors.ENDC,
                             str(master["dst"][path9]),
                         )
-                elif re_yr3.match(k):
-                    ww = re_yr3.match(k)
+                elif ctc.re_yr3.match(k):
+                    ww = ctc.re_yr3.match(k)
                     # print(path9)
                     if ww[1].lower() == x9[1].lower():
                         master["dst"][path9] = check_move_name(path9, v, path9.name, k)
@@ -903,7 +895,7 @@ for path5 in Path(tmp11).rglob("*"):
 print(bcolors.OKBLUE + "Temp folder cleared" + bcolors.ENDC)
 
 for junkfile in Path(ip).rglob("*"):
-    if re_del.match(str(junkfile)):
+    if ctc.re_del.match(str(junkfile)):
         os.remove(junkfile)
     else:
         continue
