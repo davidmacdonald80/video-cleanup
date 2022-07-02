@@ -2,6 +2,7 @@ import re
 import os
 import subprocess
 from pymediainfo import MediaInfo
+import string
 
 # from clean_video import re_se, slsh, bcolors
 
@@ -108,20 +109,22 @@ class clean:
                 for rename_list_item in rename_list:
                     rename_item = rename_list_item.rstrip()
                     if rename_item in f_Name:
-                        f_Name = f_Name.replace(rename_item, ".")
+                        f_Name = f_Name.replace(rename_item, "")
+                        os.rename(ele_ment, f_Name)
                         f_change_needed = 1
-                if f_change_needed == 1:
-                    os.rename(ele_ment, f_Name)
+                    if f_change_needed == 1:
+                        os.rename(ele_ment, f_Name)
                     continue
             if not re.match(r".+\.(?:mp4|mkv|avi|m4v|mov|mpg)$", ele_ment):
                 continue
             for rename_list_item in rename_list:
                 rename_item = rename_list_item.rstrip()
                 if rename_item in f_Name:
-                    f_Name = f_Name.replace(rename_item, ".")
+                    f_Name = f_Name.replace(rename_item, "")
+                    os.rename(ele_ment, f_Name)
                     f_change_needed = 1
-            if f_change_needed == 1:
-                os.rename(ele_ment, f_Name)
+                if f_change_needed == 1:
+                    os.rename(ele_ment, f_Name)
 
     def check_comment(u):
         """return General track comment or description"""
@@ -168,6 +171,22 @@ class clean:
             r = f.replace(" ", "")
             if r != f:
                 os.rename(f, r)
+
+    def remove_punc(file_list):
+        punctuation = set(string.punctuation)
+        punctuation.remove(".")
+        punctuation.remove("-")
+        punctuation.remove("/")
+        for ele_ment in file_list:
+            f_Name = str(ele_ment)
+            for rename_item in punctuation:
+                if ele_ment.endswith("/") or str(ele_ment).endswith(".part"):
+                    continue
+                f_Name = f_Name.replace(" ", ".")
+                f_Name = f_Name.replace(rename_item, ".")
+                f_Name = f_Name.replace("..", ".")
+            if ele_ment != f_Name:
+                os.rename(ele_ment, f_Name)
 
 
 class bcolors:
