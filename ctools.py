@@ -3,6 +3,7 @@ import os
 import subprocess
 from pymediainfo import MediaInfo
 import string
+import copy
 
 # from clean_video import re_se, slsh, bcolors
 
@@ -52,7 +53,9 @@ class cvars:
     re_yr = re.compile(r"((.+)\.(\d{4}$))")
     re_yr2 = re.compile(r"(.+)( \(\d{4}\)$)")
     re_yr3 = re.compile(r"(.+)(\(\d{4}\)$)")
-
+    #
+    # other
+    change_ele = 0
 
 class clean:
     def __init__(self):
@@ -96,11 +99,12 @@ class clean:
 
     def fname_rename(iterable_file_list):
         for ele_ment in iterable_file_list:
+            cvars.change_ele = 1
             if ele_ment.endswith("/"):
                 continue
             if str(ele_ment).endswith(".part"):
                 continue
-            f_Name = ele_ment
+            f_Name = copy.deepcopy(ele_ment)
             f_change_needed = 0
             rename_list = open("rename_list.txt", "r", encoding="utf8")
             # match and rename Directories first
@@ -112,19 +116,24 @@ class clean:
                         f_Name = f_Name.replace(rename_item, "")
                         os.rename(ele_ment, f_Name)
                         f_change_needed = 1
+                        cvars.change_ele = 0
                     if f_change_needed == 1:
                         os.rename(ele_ment, f_Name)
-                    continue
+                        cvars.change_ele = 0
+                    else:
+                        continue
             if not re.match(r".+\.(?:mp4|mkv|avi|m4v|mov|mpg)$", ele_ment):
                 continue
-            for rename_list_item in rename_list:
-                rename_item = rename_list_item.rstrip()
-                if rename_item in f_Name:
-                    f_Name = f_Name.replace(rename_item, "")
-                    os.rename(ele_ment, f_Name)
-                    f_change_needed = 1
-                if f_change_needed == 1:
-                    os.rename(ele_ment, f_Name)
+            if os.path.exists(ele_ment):
+                if cvars.change_ele == 1:
+                    for rename_list_item in rename_list:
+                        rename_item = rename_list_item.rstrip()
+                        if rename_item in f_Name:
+                            change_name = f_Name.replace(rename_item, "")
+                            os.rename(ele_ment, change_name)
+                            f_change_needed = 1
+                        # if f_change_needed == 1:
+                        #     os.rename(ele_ment, change_name)
 
     def check_comment(u):
         """return General track comment or description"""
