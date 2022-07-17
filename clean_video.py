@@ -705,10 +705,10 @@ for mp4_name2, _ in master["mp4"].items():
         ctools.clean.sbp_run(cmd32)
         print("edit video track name on {}".format(fpath_mkv))
         logging.info(cmd32)
-        cmd33 = mkvpedit + " " + ip + fpath_mkv + " --edit track:a1 --set name=''"
-        ctools.clean.sbp_run(cmd33)
-        print("edit audio track name on {}".format(fpath_mkv))
-        logging.info(cmd33)
+        # cmd33 = mkvpedit + " " + ip + fpath_mkv + " --edit track:a1 --set name=''"
+        # ctools.clean.sbp_run(cmd33)
+        # print("edit audio track name on {}".format(fpath_mkv))
+        # logging.info(cmd33)
         if useramdsk == 0:
             send2trash.send2trash(fpath)
         elif useramdsk == 1:
