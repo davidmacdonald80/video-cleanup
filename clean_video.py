@@ -90,7 +90,7 @@ def check_move_name(src_file, dst_folder, src_name, dst_name):
             bcolors.OKGREEN
             + "Directory created "
             + bcolors.ENDC
-            + "{}".format(new_season_folder)
+            + f"{new_season_folder}"
         )
     resolution, codec = ctools.clean.get_media_info(src_file)
     mv_name = (
@@ -136,14 +136,27 @@ def flatten_files(os_walk_path):
                 continue
         remove_empty_folders(ip)
 
-
-ctools.clean.remove_punc(glob.glob(ip + "**", recursive=True))
-ctools.clean.remove_space(glob.glob(ip + "**"))
-flatten_files(os.walk(ip))
-if not os.path.exists(tmp11):
-    os.makedirs(tmp11)
-ctools.clean.fname_rename(glob.glob(ip + "**", recursive=True))
-
+try:
+    ctools.clean.remove_punc(glob.glob(ip + "**", recursive=True))
+except FileNotFoundError as err_found:
+    print("FileNotFoundError from line 140: ", err_found)
+try:
+    ctools.clean.remove_space(glob.glob(ip + "**"))
+except FileNotFoundError as err_found:
+    print("FileNotFoundError from line 144: ", err_found)
+try:
+    flatten_files(os.walk(ip))
+except FileNotFoundError as err_found:
+    print("FileNotFoundError from line 148: ", err_found)
+try:
+    if not os.path.exists(tmp11):
+        os.makedirs(tmp11)
+except FileNotFoundError as err_found:
+    print("FileNotFoundError from line 153: ", err_found)
+try:
+    ctools.clean.fname_rename(glob.glob(ip + "**", recursive=True))
+except FileNotFoundError as err_found:
+    print("FileNotFoundError from line 157: ", err_found)
 
 # ############################
 # ####### Begin MKV ##########
@@ -262,7 +275,7 @@ for mkv_name5, _ in master["mkv"].items():
             + " --tags all: --add-track-statistics-tags"
         )
         logging.info(cmd43)
-        print("remove tags in {}".format(mkv_name5))
+        print(f"remove tags in {mkv_name5}")
         ctools.clean.sbp_run(cmd43)
         os.utime(
             fp_mkv_name5,
@@ -314,9 +327,9 @@ for mkv_name7, _ in master["mkv"].items():
                     + master["mkv"][mkv_name7]["Vcodec"]
                 )
             else:
-                logging.info("video extract failed on {}".format(mkv_name7))
+                logging.info(f"video extract failed on {mkv_name7}")
                 print("broken in video extract")
-                print("breaking on: {}".format(mkv_name7))
+                print(f"breaking on: {mkv_name7}")
                 break
             mkv_v_extract_cmd = (
                 mkv_e
@@ -353,7 +366,7 @@ for mkv_name7, _ in master["mkv"].items():
                         + master["mkv"][mkv_name7]["Vcodec"]
                     )
                 else:
-                    logging.info("video extract failed on {}".format(mkv_name7))
+                    logging.info(f"video extract failed on {mkv_name7}")
                     print("something is broken in Video Extract")
                     print("breaking while for file: ", mkv_name7)
                     break
@@ -430,7 +443,7 @@ for mkv_name9, _ in master["mkv"].items():
         elif master["mkv"][mkv_name9]["notshow"] == "1":
             aa4e = tmp11 + str_name9 + "." + aud_cdc9
         else:
-            logging.info("broke on {}".format(mkv_name9))
+            logging.info(f"broke on {mkv_name9}")
             print("something broken in audio extract")
             print("breaking on: ", mkv_name9)
             break
@@ -455,7 +468,7 @@ for mkv_name10, _ in master["mkv"].items():
             elif master["mkv"][mkv_name10]["notshow"] == "1":
                 aa5c = tmp11 + str_name10 + ".xml"
             else:
-                logging.info("broke on {}".format(mkv_name10))
+                logging.info(f"broke on {mkv_name10}")
                 print("something broken in chapter extract")
                 print("breaking on: ", mkv_name10)
                 break
@@ -481,7 +494,7 @@ for mkv_name11, _ in master["mkv"].items():
         elif master["mkv"][mkv_name11]["notshow"] == "1":
             extrcted_sub_name11 = tmp11 + str_name11 + ".srt"
         else:
-            logging.info("broke on {}".format(mkv_name11))
+            logging.info(f"broke on {mkv_name11}")
             print("broken - subtitle extract")
             print("breaking on: ", mkv_name11)
             break
@@ -508,7 +521,7 @@ for mkv_name12, _ in master["mkv"].items():
     # print(mkv_name12)
     if master["mkv"][mkv_name12]["tchapters"] != "0":
         if Path(master["mkv"][mkv_name12]["tchapters"]).stat().st_size < 975:
-            logging.info("removing {}".format(master["mkv"][mkv_name12]["tchapters"]))
+            logging.info(f"removing {master['mkv'][mkv_name12]['tchapters']}")
             os.remove(master["mkv"][mkv_name12]["tchapters"])
             master["mkv"][mkv_name12]["tchapters"] = "0"
 # end check/delete useless chapters
@@ -613,7 +626,7 @@ for mkv_name14, _ in master["mkv"].items():
             send2trash.send2trash(path14)
         elif useramdsk == 1:
             shutil.move(file_to_delete14, trash11 + mkv_name14)
-        logging.info("sending to trash {}".format(path14))
+        logging.info(f"sending to trash {path14}")
         print()
         new_file_name14 = os.path.join(ip, (season_epi_num14 + "-CHANGED-.mkv"))
         # print(new_file_name14)
@@ -703,11 +716,11 @@ for mp4_name2, _ in master["mp4"].items():
 
         cmd32 = mkvpedit + " " + ip + fpath_mkv + " --edit track:v1 --set name=''"
         ctools.clean.sbp_run(cmd32)
-        print("edit video track name on {}".format(fpath_mkv))
+        print(f"edit video track name on {fpath_mkv}")
         logging.info(cmd32)
         # cmd33 = mkvpedit + " " + ip + fpath_mkv + " --edit track:a1 --set name=''"
         # ctools.clean.sbp_run(cmd33)
-        # print("edit audio track name on {}".format(fpath_mkv))
+        # print(f"edit audio track name on {fpath_mkv}")
         # logging.info(cmd33)
         if useramdsk == 0:
             send2trash.send2trash(fpath)
@@ -722,7 +735,7 @@ for mp4_name2, _ in master["mp4"].items():
                 master["mp4"][mp4_name2]["m4st_mtime"],
             ),
         )
-        logging.info("trashing {}".format(fpath))
+        logging.info(f"trashing {fpath}")
         print()
 
 ctools.clean.fname_rename(glob.glob(ip + "**", recursive=True))
@@ -821,7 +834,7 @@ for path9 in Path(ip).rglob("*"):
                 if k.lower() == x9[1].lower():
                     master["dst"][path9] = check_move_name(path9, v, path9.name, k)
                     shutil.move(str(path9), str(master["dst"][path9]))
-                    logging.info("moved to {}".format(str(master["dst"][path9])))
+                    logging.info(f"moved to {str(master['dst'][path9])}")
                     print(
                         bcolors.OKBLUE + "Moved: " + bcolors.ENDC,
                         str(master["dst"][path9]),
@@ -831,7 +844,7 @@ for path9 in Path(ip).rglob("*"):
                     if k.lower() == ww[2].lower():
                         master["dst"][path9] = check_move_name(path9, v, path9.name, k)
                         shutil.move(str(path9), master["dst"][path9])
-                        logging.info("moved to {}".format(str(master["dst"][path9])))
+                        logging.info(f"moved to {str(master['dst'][path9])}")
                         print(
                             bcolors.OKBLUE + "Moved: " + bcolors.ENDC,
                             str(master["dst"][path9]),
@@ -842,7 +855,7 @@ for path9 in Path(ip).rglob("*"):
                     if x9[1].lower() == ww[2].lower():
                         master["dst"][path9] = check_move_name(path9, v, path9.name, k)
                         shutil.move(str(path9), master["dst"][path9])
-                        logging.info("moved to {}".format(str(master["dst"][path9])))
+                        logging.info(f"moved to {str(master['dst'][path9])}")
                         print(
                             bcolors.OKBLUE + "Moved: " + bcolors.ENDC,
                             str(master["dst"][path9]),
@@ -850,11 +863,11 @@ for path9 in Path(ip).rglob("*"):
                 elif ctc.re_yr2.match(k):
                     ww = ctc.re_yr2.match(k)
                     # print(k)
-                    # print("ww: {}".format(ww))
+                    # print(f"ww: {ww}")
                     if ww[1].lower() == x9[1].lower():
                         master["dst"][path9] = check_move_name(path9, v, path9.name, k)
                         shutil.move(str(path9), master["dst"][path9])
-                        logging.info("moved to {}".format(master["dst"][path9]))
+                        logging.info(f"moved to {master['dst'][path9]}")
                         print(
                             bcolors.OKBLUE + "moved: " + bcolors.ENDC,
                             str(master["dst"][path9]),
@@ -865,7 +878,7 @@ for path9 in Path(ip).rglob("*"):
                     if ww[1].lower() == x9[1].lower():
                         master["dst"][path9] = check_move_name(path9, v, path9.name, k)
                         shutil.move(str(path9), str(master["dst"][path9]))
-                        logging.info("moved to {}".format(master["dst"][path9]))
+                        logging.info(f"moved to {master['dst'][path9]}")
                         print(
                             bcolors.OKBLUE + "moved: " + bcolors.ENDC,
                             str(master["dst"][path9]),
@@ -880,7 +893,7 @@ for path4 in Path(tmp11).rglob("*.srt"):
         os.remove(path4)
     else:
         mvsubs = shutil.move(str(path4), p4dst)
-        logging.info("moved sub to {}".format(p4dst))
+        logging.info(f"moved sub to {p4dst}")
         print(bcolors.OKGREEN + "Moving sub: " + bcolors.ENDC, mvsubs)
 
 for path5 in Path(tmp11).rglob("*"):

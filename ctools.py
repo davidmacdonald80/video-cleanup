@@ -90,10 +90,10 @@ class clean:
         resolution = str(width) + "x" + str(height)
         if (height == -1) or (width == -1) or (codec == -1):
             print("something is broken in ctools -> get_media_info")
-            print("broke reading filename: {}".format(u))
-            print("height is: {}".format(height))
-            print("width is: {}".format(width))
-            print("codec is: {}".format(codec))
+            print(f"broke reading filename: {u}")
+            print(f"height is: {height}")
+            print(f"width is: {width}")
+            print(f"codec is: {codec}")
             quit()
         return resolution, codec
 

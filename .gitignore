@@ -129,3 +129,16 @@ dmypy.json
 .pyre/
 t4.py
 t3.py
+lib64
+bin/send2trash
+bin/python3.9
+bin/python3
+bin/python
+*.9
+bin/activate
+*.csh
+*.fish
+bin/Activate.ps1
+bin/pip
+bin/pip3
+pyvenv.cfg

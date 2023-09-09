@@ -125,7 +125,7 @@ for path1 in Path(ip).rglob("*"):
         args=(str(path1), str(path1.parent), str(path1.stem)),
     )
     jobs.append(convert)
-    logging.info("starting transcode of: {}".format(str(path1)))
+    logging.info(f"starting transcode of: {str(path1)}")
     convert.start()
     clean264[str(path1)] = str(path1.parent) + "/" + str(path1.stem) + ".HEVC.mp4"
     while True:
@@ -153,7 +153,7 @@ for k, v in clean264.items():
     if probe_duration(k) == probe_duration(v):
         sz = os.path.getsize(k) * 0.75
         if os.path.getsize(v) < sz:
-            logging.info(" trashing {}".format(k))
+            logging.info(f" trashing {k}")
             print("trash", k)
             if useramdsk == 0:
                 send2trash.send2trash(k)
@@ -161,7 +161,7 @@ for k, v in clean264.items():
                 kname = k.split(ip)
                 shutil.move(k, trsh11 + kname[1])
         else:
-            logging.info("check file size on {}".format(k))
+            logging.info(f"check file size on {k}")
             print()
-            print("log, see if worth converting: {}".format(k))
+            print(f"log, see if worth converting: {k}")
             print()
